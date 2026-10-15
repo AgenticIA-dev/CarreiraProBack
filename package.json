@@ -1,0 +1,37 @@
+{
+  "name": "carreirapro-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CarreiraPro — backend (API). Checkout/pagamento (Mercado Pago), IA (STAR/feedback), transcrição, banco de perguntas, conta e administração. Projeto Next.js somente com Route Handlers (sem páginas) — ver docs/DOCUMENTATION.md.",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:types": "supabase gen types typescript --local > src/types/database.ts",
+    "seed": "tsx scripts/seed-questions.ts"
+  },
+  "dependencies": {
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@supabase/supabase-js": "^2.47.10",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.0",
+    "vitest": "^2.1.8",
+    "tsx": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
