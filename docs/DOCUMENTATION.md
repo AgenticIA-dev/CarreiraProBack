@@ -14,8 +14,8 @@ aqui: checkout e pagamento (Mercado Pago), IA (STAR/feedback do simulador), tran
 banco de perguntas, conta do usuário e administração.
 
 O projeto irmão, `carreirapro-frontend`, é quem serve a interface (páginas públicas, área do
-usuário, admin) e a autenticação (sessão Supabase). Ele chama este backend por HTTP para tudo o
-que envolve dados ou regras de negócio — nunca lê as tabelas diretamente.
+usuário, admin). Ele chama este backend por HTTP para tudo — inclusive a autenticação — e não
+tem nenhuma dependência do Supabase. Este backend é o único ponto que fala com o Supabase.
 
 ## 2. Por que a separação muda a autenticação
 
@@ -25,7 +25,14 @@ origens automaticamente (e não deveriam, por segurança). Por isso:
 
 - Este backend **não usa cookies em nenhuma rota**. Toda rota autenticada exige o header
   `Authorization: Bearer <token>`, onde `<token>` é o access token da sessão Supabase do usuário
-  (obtido no frontend).
+  (emitido por este backend em `/api/auth/login` ou `/api/auth/refresh`; o frontend o guarda em
+  cookies do seu próprio domínio).
+- `/api/auth/*` é o único lugar que fala com o Supabase Auth em nome do usuário (cliente anônimo,
+  sem sessão persistida — `src/lib/supabase/authSession.ts`). Os links de e-mail (recuperação de
+  senha e convite do webhook) usam o fluxo "implicit" e apontam para
+  `FRONTEND_ORIGIN/redefinir-senha` — URL montada no servidor, nunca vinda do cliente; ela
+  precisa estar nas Redirect URLs do Supabase Auth. O rate limit de login/recuperação é por
+  e-mail, porque o login chega via servidor do frontend (mesmo IP para todos).
 - `src/lib/supabase/apiAuth.ts` é o único lugar que decide autenticação/autorização:
   - `getAuthenticatedUser(request)` — exige um token válido (`supabase.auth.getUser(token)`
     verifica a assinatura contra o servidor do Supabase; nunca decodifica e confia sem validar).
@@ -52,6 +59,11 @@ origens automaticamente (e não deveriam, por segurança). Por isso:
 | `/api/health` | GET | nenhuma | checagem de disponibilidade |
 | `/api/checkout/create-preference` | POST | nenhuma (rate limit por IP) | cria preferência de pagamento no Mercado Pago |
 | `/api/webhooks/mercadopago` | POST | assinatura do Mercado Pago (`x-signature`) | processa notificação de pagamento, concede/revoga acesso |
+| `/api/auth/login` | POST | nenhuma (rate limit por e-mail) | e-mail/senha → `{ session: { access_token, refresh_token, expires_in } }` |
+| `/api/auth/refresh` | POST | refresh token no corpo | sessão nova (tokens rotacionados) |
+| `/api/auth/logout` | POST | Bearer | revoga a sessão no Supabase Auth |
+| `/api/auth/forgot-password` | POST | nenhuma (rate limit por e-mail) | envia e-mail de recuperação; resposta sempre genérica |
+| `/api/auth/reset-password` | POST | Bearer (token do link de e-mail) | define nova senha (recuperação ou convite) |
 | `/api/account/me` | GET | Bearer | devolve o perfil (status/role) — usado pelo frontend para gating |
 | `/api/account/profile` | PATCH | Bearer + active | atualiza o nome |
 | `/api/account/password` | POST | Bearer + active | altera a senha |

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/serviceRole";
+import { getPasswordSetupUrl } from "@/lib/supabase/authSession";
 import { verifyMercadoPagoWebhook, buildIdempotencyKey } from "@/lib/mercadopago/verifyWebhook";
 import { getPayment } from "@/lib/mercadopago/client";
 import { mapPaymentToPurchaseStatus, mapPaymentToUserStatus } from "@/lib/mercadopago/mapStatus";
@@ -156,8 +157,12 @@ async function syncUserAccess(
   // Sem cadastro público: o acesso é concedido criando o usuário por convite
   // de e-mail (sem senha permanente em texto puro). O trigger
   // `on_auth_user_created` cria o perfil em public.users com status
-  // "pending"; aqui atualizamos para o status real do pagamento.
-  const { data: invited, error } = await service.auth.admin.inviteUserByEmail(email);
+  // "pending"; aqui atualizamos para o status real do pagamento. O link do
+  // convite leva para `/redefinir-senha` no frontend, onde o comprador define
+  // a senha via `/api/auth/reset-password`.
+  const { data: invited, error } = await service.auth.admin.inviteUserByEmail(email, {
+    redirectTo: getPasswordSetupUrl(),
+  });
   if (error || !invited?.user) {
     throw error ?? new Error("Falha ao convidar o usuário após pagamento aprovado.");
   }

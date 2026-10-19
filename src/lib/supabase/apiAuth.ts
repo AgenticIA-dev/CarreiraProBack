@@ -18,7 +18,7 @@ import type { Database, UserRow } from "@/types/database";
  * explícitas, nunca para "confiar" num usuário).
  */
 
-function getAnonConfig() {
+export function getAnonConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
