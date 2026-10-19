@@ -1,8 +1,8 @@
 /**
  * Rate limiting best-effort, em memória do processo.
  *
- * LIMITAÇÃO CONHECIDA: em ambientes serverless com múltiplas instâncias
- * (ex.: Vercel), este limitador não é compartilhado entre instâncias — serve
+ * LIMITAÇÃO CONHECIDA: com múltiplas instâncias do servidor (vários
+ * processos, containers ou serverless), este limitador não é compartilhado — serve
  * como defesa básica em desenvolvimento/instância única. Para produção com
  * múltiplas instâncias, substitua por um limitador distribuído (ex.: Upstash
  * Redis + `@upstash/ratelimit`), documentado como pendência em
