@@ -1,0 +1,15 @@
+node_modules
+dist
+.next
+coverage
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+Dockerfile
+.dockerignore
+docs
+tests
