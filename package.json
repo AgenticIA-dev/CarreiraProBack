@@ -5,7 +5,7 @@
   "type": "module",
   "description": "CarreiraPro — backend (API HTTP em Node.js, Hono). Checkout/pagamento (Mercado Pago), IA (STAR/feedback), transcrição, banco de perguntas, conta e administração (PostgreSQL via TypeORM) — ver docs/DOCUMENTATION.md.",
   "scripts": {
-    "dev": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local watch src/server.ts",
+    "dev": "tsx watch --env-file-if-exists=.env --env-file-if-exists=.env.local src/server.ts",
     "build": "tsup",
     "start": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --enable-source-maps dist/server.js",
     "lint": "eslint .",
