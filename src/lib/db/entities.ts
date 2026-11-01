@@ -48,6 +48,7 @@ export const UserEntity = new EntitySchema<UserWithPasswordRow>({
     created_at: createdAt,
     updated_at: updatedAt,
     last_login_at: { type: "timestamptz", nullable: true },
+    access_expires_at: { type: "timestamptz", nullable: true },
   },
 });
 
@@ -105,7 +106,7 @@ export const QuestionEntity = new EntitySchema<QuestionRow>({
     category: {
       type: "enum",
       enumName: "question_category",
-      enum: ["comportamental", "star", "tecnica", "situacional", "fit_cultural", "lideranca"],
+      enum: ["comportamental", "star", "tecnica", "situacional", "fit_cultural", "lideranca", "aumento_promocao"],
     },
     question: { type: "text" },
     evaluates: { type: "text", nullable: true },

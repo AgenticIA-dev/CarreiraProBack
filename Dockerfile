@@ -1,17 +1,17 @@
 # syntax=docker/dockerfile:1
 #
-# CarreiraPro — backend (API Hono).
+# VoceUP — backend (API Hono).
 #
-#   docker build -t carreirapro-backend .
-#   docker run --env-file .env -p 3001:3001 carreirapro-backend
+#   docker build -t voceup-backend .
+#   docker run --env-file .env -p 3001:3001 voceup-backend
 #
 # As variáveis de ambiente (DATABASE_URL, JWT_SECRET, SMTP_*, MERCADOPAGO_*...)
 # são passadas em tempo de execução — nunca entram na imagem.
 #
 # Scripts de banco, com o container já configurado:
-#   docker run --rm --env-file .env carreirapro-backend node dist/migrate.js
-#   docker run --rm --env-file .env carreirapro-backend node dist/seed.js
-#   docker run --rm --env-file .env carreirapro-backend node dist/create-user.js --email admin@exemplo.com --password "senha-forte" --admin
+#   docker run --rm --env-file .env voceup-backend node dist/migrate.js
+#   docker run --rm --env-file .env voceup-backend node dist/seed.js
+#   docker run --rm --env-file .env voceup-backend node dist/create-user.js --email admin@exemplo.com --password "senha-forte" --admin
 
 ARG NODE_VERSION=22
 

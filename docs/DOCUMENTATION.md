@@ -1,6 +1,6 @@
-# CarreiraPro — Backend (API)
+# VoceUP — Backend (API)
 
-> Este é o projeto **backend** do CarreiraPro, separado do frontend a pedido do usuário
+> Este é o projeto **backend** do VoceUP, separado do frontend a pedido do usuário
 > (15/10/2026). Antes, frontend e backend eram um único projeto Next.js; agora são dois
 > deploys independentes que se comunicam por HTTP. Este documento descreve só o backend — o
 > frontend tem seu próprio `docs/DOCUMENTATION.md`.
@@ -13,7 +13,7 @@ integrações externas, a autenticação e todo o acesso ao banco (PostgreSQL, v
 aqui: checkout e pagamento (Mercado Pago), IA (STAR/feedback do simulador), transcrição de
 áudio, banco de perguntas, conta do usuário e administração.
 
-O projeto irmão, `carreirapro-frontend`, é quem serve a interface (páginas públicas, área do
+O projeto irmão, `voceup-frontend`, é quem serve a interface (páginas públicas, área do
 usuário, admin). Ele chama este backend por HTTP para tudo — inclusive a autenticação — e não
 acessa o banco. Este backend é o único ponto que fala com o PostgreSQL.
 
@@ -306,5 +306,5 @@ npm run build && npm start   # build de produção em dist/
 ```
 
 Para um PostgreSQL local rápido: `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres
--e POSTGRES_DB=carreirapro postgres:17` e
-`DATABASE_URL=postgres://postgres:postgres@localhost:5432/carreirapro`.
+-e POSTGRES_DB=voceup postgres:17` e
+`DATABASE_URL=postgres://postgres:postgres@localhost:5432/voceup`.

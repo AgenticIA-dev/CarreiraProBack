@@ -1,10 +1,10 @@
-# CarreiraPro — Backend
+# VoceUP — Backend
 
-API do CarreiraPro: checkout/pagamento (Mercado Pago), IA (STAR/feedback do simulador),
+API do VoceUP: checkout/pagamento (Mercado Pago), IA (STAR/feedback do simulador),
 transcrição de áudio, banco de perguntas, conta e administração. Servidor HTTP Node.js (Hono)
 que só expõe uma API JSON — não serve nenhuma página de interface.
 
-> Este projeto trabalha em conjunto com o **`carreirapro-frontend`**, que serve a interface e
+> Este projeto trabalha em conjunto com o **`voceup-frontend`**, que serve a interface e
 > chama esta API por HTTP (inclusive para login). Os dois são deploys independentes.
 
 ## Documentação

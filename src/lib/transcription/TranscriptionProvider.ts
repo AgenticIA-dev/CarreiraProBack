@@ -8,6 +8,8 @@
 export interface TranscriptionResult {
   transcript: string;
   durationSeconds: number | null;
+  /** false quando não há transcrição real configurada (provedor mock). */
+  available?: boolean;
 }
 
 export interface TranscriptionProvider {

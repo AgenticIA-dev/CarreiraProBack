@@ -1,4 +1,5 @@
 import type { DataSource, QueryDeepPartialEntity } from "typeorm";
+import { computeAccessExpiry } from "@/lib/checkout/config";
 import { getDb } from "@/lib/db/dataSource";
 import { PurchaseEntity, UserEntity, WebhookEventEntity } from "@/lib/db/entities";
 import { createAuthToken } from "@/lib/auth/authTokens";
@@ -81,7 +82,26 @@ export async function POST(request: Request) {
     .execute();
 
   if (!Array.isArray(inserted.raw) || inserted.raw.length === 0) {
-    return Response.json({ ok: true, duplicate: true });
+    // Evento já recebido antes. Só é ignorado se foi processado com sucesso:
+    // se a tentativa anterior falhou (status "error") ou travou no meio
+    // ("received" há mais de 5 minutos), o reenvio do Mercado Pago é
+    // reprocessado — antes, um erro temporário (ex.: banco ou API fora do ar)
+    // deixava o comprador pago sem acesso para sempre. O UPDATE ... RETURNING
+    // garante que só uma requisição "pega" o reprocessamento.
+    const claimed = await events
+      .createQueryBuilder()
+      .update()
+      .set({ status: "received", error_message: null })
+      .where("idempotency_key = :key", { key: idempotencyKey })
+      .andWhere(
+        "(status = 'error' or (status = 'received' and processed_at is null and created_at < now() - interval '5 minutes'))"
+      )
+      .returning(["id"])
+      .execute();
+    if (!Array.isArray(claimed.raw) || claimed.raw.length === 0) {
+      return Response.json({ ok: true, duplicate: true });
+    }
+    console.warn(`[webhook] Reprocessando evento ${idempotencyKey} após falha anterior.`);
   }
 
   try {
@@ -95,6 +115,7 @@ export async function POST(request: Request) {
 
     return Response.json({ ok: true });
   } catch (err) {
+    console.error(`[webhook] Falha ao processar ${idempotencyKey}:`, err);
     await events
       .update(
         { idempotency_key: idempotencyKey },
@@ -114,7 +135,14 @@ async function processPayment(db: DataSource, payment: MercadoPagoPayment, event
 
   const email = (payment.payer?.email || payment.external_reference || "").trim().toLowerCase() || null;
   const userStatus = mapPaymentToUserStatus(payment.status);
-  const userId = email && userStatus ? await syncUserAccess(db, email, userStatus) : null;
+  // O mesmo pagamento gera várias notificações (created/updated): o prazo do
+  // acesso só é estendido na primeira vez em que ele aparece como aprovado.
+  const alreadyGranted = await db.getRepository(PurchaseEntity).existsBy({
+    external_transaction_id: String(payment.id),
+    status: "approved",
+  });
+  const userId =
+    email && userStatus ? await syncUserAccess(db, email, userStatus, !alreadyGranted) : null;
 
   await db.getRepository(PurchaseEntity).upsert(
     {
@@ -136,12 +164,22 @@ async function processPayment(db: DataSource, payment: MercadoPagoPayment, event
  * acesso (`active`) — nunca cria um registro só para aplicar um status de
  * revogação a alguém que nunca teve acesso.
  */
-async function syncUserAccess(db: DataSource, email: string, status: UserStatus): Promise<string | null> {
+async function syncUserAccess(
+  db: DataSource,
+  email: string,
+  status: UserStatus,
+  extendAccess: boolean
+): Promise<string | null> {
   const users = db.getRepository(UserEntity);
   const existing = await users.findOneBy({ email });
 
   if (existing) {
-    await users.update({ id: existing.id }, { status });
+    await users.update(
+      { id: existing.id },
+      status === "active" && extendAccess
+        ? { status, access_expires_at: computeAccessExpiry(existing.access_expires_at) }
+        : { status }
+    );
     return existing.id;
   }
 
@@ -155,7 +193,7 @@ async function syncUserAccess(db: DataSource, email: string, status: UserStatus)
   const created = await users
     .createQueryBuilder()
     .insert()
-    .values({ email, status, role: "user" })
+    .values({ email, status, role: "user", access_expires_at: computeAccessExpiry(null) })
     .orIgnore()
     .returning(["id"])
     .execute();

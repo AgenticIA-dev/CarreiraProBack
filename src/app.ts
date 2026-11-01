@@ -15,6 +15,7 @@ import * as authLogout from "@/routes/auth/logout";
 import * as authRefresh from "@/routes/auth/refresh";
 import * as authResetPassword from "@/routes/auth/reset-password";
 import * as checkoutCreatePreference from "@/routes/checkout/create-preference";
+import * as checkoutInfo from "@/routes/checkout/info";
 import * as consent from "@/routes/consent";
 import * as dashboardReadiness from "@/routes/dashboard/readiness";
 import * as interviewFeedback from "@/routes/interview/feedback";
@@ -53,8 +54,8 @@ export function createApp() {
     (c.req.path === "/api/interview/transcribe" ? audioBody : smallBody)(c, next)
   );
 
-  app.get("/", (c) => c.json({ service: "carreirapro-backend", health: "/api/health" }));
-  app.get("/api/health", (c) => c.json({ ok: true, service: "carreirapro-backend" }));
+  app.get("/", (c) => c.json({ service: "voceup-backend", health: "/api/health" }));
+  app.get("/api/health", (c) => c.json({ ok: true, service: "voceup-backend" }));
 
   // Autenticação
   app.post("/api/auth/login", handle(authLogin.POST));
@@ -87,6 +88,7 @@ export function createApp() {
   app.get("/api/admin/questions", handle(adminQuestions.GET));
 
   // Pagamento
+  app.get("/api/checkout/info", () => checkoutInfo.GET());
   app.post("/api/checkout/create-preference", handle(checkoutCreatePreference.POST));
   app.post("/api/webhooks/mercadopago", handle(webhooksMercadoPago.POST));
 

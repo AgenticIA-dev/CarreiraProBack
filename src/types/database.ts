@@ -41,7 +41,8 @@ export type QuestionCategory =
   | "tecnica"
   | "situacional"
   | "fit_cultural"
-  | "lideranca";
+  | "lideranca"
+  | "aumento_promocao";
 
 export type QuestionDifficulty = "iniciante" | "intermediaria" | "avancada";
 
@@ -54,6 +55,8 @@ export interface UserRow {
   created_at: Timestamp;
   updated_at: Timestamp;
   last_login_at: Timestamp | null;
+  /** Fim do acesso comprado; null = sem expiração. */
+  access_expires_at: Timestamp | null;
 }
 
 export interface PurchaseRow {

@@ -1,9 +1,9 @@
 {
-  "name": "carreirapro-backend",
+  "name": "voceup-backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "CarreiraPro — backend (API HTTP em Node.js, Hono). Checkout/pagamento (Mercado Pago), IA (STAR/feedback), transcrição, banco de perguntas, conta e administração (PostgreSQL via TypeORM) — ver docs/DOCUMENTATION.md.",
+  "description": "VoceUP — backend (API HTTP em Node.js, Hono). Checkout/pagamento (Mercado Pago), IA (STAR/feedback), transcrição, banco de perguntas, conta e administração (PostgreSQL via TypeORM) — ver docs/DOCUMENTATION.md.",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=.env --env-file-if-exists=.env.local src/server.ts",
     "build": "tsup",

@@ -40,8 +40,21 @@ export async function getAuthenticatedUser(request: Request): Promise<ApiAuthCon
   if (!claims) return null;
 
   const db = await getDb();
-  const profile = await db.getRepository(UserEntity).findOneBy({ id: claims.userId });
+  const users = db.getRepository(UserEntity);
+  let profile = await users.findOneBy({ id: claims.userId });
   if (!profile) return null;
+
+  // Acesso com prazo vencido: passa a valer como "inactive" (e é gravado
+  // assim), para que frontend e rotas bloqueiem o acesso. Admin nunca expira.
+  if (
+    profile.status === "active" &&
+    profile.role !== "admin" &&
+    profile.access_expires_at &&
+    new Date(profile.access_expires_at).getTime() < Date.now()
+  ) {
+    await users.update({ id: profile.id }, { status: "inactive" }).catch(() => null);
+    profile = { ...profile, status: "inactive" };
+  }
 
   return { userId: profile.id, email: profile.email, profile, db };
 }

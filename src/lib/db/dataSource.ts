@@ -2,11 +2,13 @@ import "reflect-metadata";
 import { DataSource, type DataSourceOptions } from "typeorm";
 import { entities } from "./entities";
 import { Init1760900000000 } from "./migrations/1760900000000-Init";
+import { AumentoPromocao1793300000000 } from "./migrations/1793300000000-AumentoPromocao";
+import { AccessExpiry1793400000000 } from "./migrations/1793400000000-AccessExpiry";
 
 /**
  * Conexão com o PostgreSQL via TypeORM.
  *
- * Configurada por `DATABASE_URL` (ex.: postgres://user:senha@host:5432/carreirapro).
+ * Configurada por `DATABASE_URL` (ex.: postgres://user:senha@host:5432/voceup).
  * SSL é ligado com `DATABASE_SSL=true`; para provedores com certificado
  * autoassinado, `DATABASE_SSL_REJECT_UNAUTHORIZED=false`.
  *
@@ -28,7 +30,7 @@ export function buildDataSourceOptions(): DataSourceOptions {
     url,
     ssl: sslEnabled ? { rejectUnauthorized } : false,
     entities,
-    migrations: [Init1760900000000],
+    migrations: [Init1760900000000, AumentoPromocao1793300000000, AccessExpiry1793400000000],
     migrationsTableName: "typeorm_migrations",
     synchronize: false,
     logging: process.env.DATABASE_LOGGING === "true" ? ["query", "error"] : ["error"],
@@ -37,26 +39,26 @@ export function buildDataSourceOptions(): DataSourceOptions {
   };
 }
 
-const globalForDb = globalThis as unknown as { __carreiraproDb?: Promise<DataSource> };
+const globalForDb = globalThis as unknown as { __voceupDb?: Promise<DataSource> };
 
 /** Devolve a conexão inicializada (singleton por processo). */
 export function getDb(): Promise<DataSource> {
-  if (!globalForDb.__carreiraproDb) {
+  if (!globalForDb.__voceupDb) {
     const dataSource = new DataSource(buildDataSourceOptions());
-    globalForDb.__carreiraproDb = dataSource.initialize().catch((err) => {
+    globalForDb.__voceupDb = dataSource.initialize().catch((err) => {
       // Permite nova tentativa na próxima requisição em vez de ficar preso
       // numa promise rejeitada para sempre.
-      globalForDb.__carreiraproDb = undefined;
+      globalForDb.__voceupDb = undefined;
       throw err;
     });
   }
-  return globalForDb.__carreiraproDb;
+  return globalForDb.__voceupDb;
 }
 
 /** Fecha o pool, se ele chegou a ser aberto (usado no encerramento do servidor). */
 export async function closeDb(): Promise<void> {
-  const pending = globalForDb.__carreiraproDb;
-  globalForDb.__carreiraproDb = undefined;
+  const pending = globalForDb.__voceupDb;
+  globalForDb.__voceupDb = undefined;
   const db = await pending?.catch(() => null);
   await db?.destroy();
 }

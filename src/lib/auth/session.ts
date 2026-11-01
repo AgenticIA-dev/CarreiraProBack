@@ -1,6 +1,7 @@
 import type { DataSource, EntityManager } from "typeorm";
 import { ACCESS_TOKEN_TTL_SECONDS, signAccessToken } from "./accessToken";
 import { createAuthToken } from "./authTokens";
+import { getPrimaryFrontendUrl } from "@/lib/http/cors";
 
 /**
  * Formato de sessão devolvido pelo backend ao frontend (login e refresh).
@@ -34,7 +35,7 @@ export async function issueSession(
  * redirecionamento aberto.
  */
 export function buildPasswordSetupUrl(token: string): string {
-  const frontendUrl = process.env.FRONTEND_ORIGIN?.trim().replace(/\/+$/, "");
+  const frontendUrl = getPrimaryFrontendUrl();
   if (!frontendUrl) {
     throw new Error("FRONTEND_ORIGIN não configurado: necessário para montar os links de e-mail.");
   }

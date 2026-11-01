@@ -1,0 +1,68 @@
+# =============================================================================
+# CarreiraPro — Backend — Variáveis de ambiente (DESENVOLVIMENTO LOCAL)
+# Substitua cada *** pelo valor real antes de salvar. NUNCA commitar este arquivo.
+# =============================================================================
+
+# --- CORS ----------------------------------------------------------------------
+# Origem do frontend. Aceita várias, separadas por vírgula. A 1ª é usada nos
+# links de e-mail e no retorno do Mercado Pago.
+FRONTEND_ORIGIN=http://localhost:3000
+
+# --- Servidor HTTP -----------------------------------------------------------------
+# HOST vazio = escuta em IPv4 + IPv6 (evita lentidão no Windows).
+# Em produção atrás do Nginx: HOST=127.0.0.1
+PORT=3001
+HOST=
+
+# --- Banco de dados (PostgreSQL 13+, via TypeORM) --------------------------------
+# RECOLOQUE A SENHA no lugar de ***.
+DATABASE_URL=postgres://postgres:***@tln7ie.easypanel.host:8888/carreira-pro?sslmode=disable
+DATABASE_SSL=false
+DATABASE_SSL_REJECT_UNAUTHORIZED=true
+DATABASE_POOL_MAX=5
+DATABASE_LOGGING=false
+
+# --- Autenticação ----------------------------------------------------------------
+# RECOLOQUE o valor atual (trocar encerra todas as sessões).
+JWT_SECRET=***
+
+# --- E-mail (SMTP) -----------------------------------------------------------------
+# Vazio em desenvolvimento = e-mails impressos no console do backend.
+# Em produção é OBRIGATÓRIO (convite pós-compra e recuperação de senha).
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=CarreiraPro <no-reply@seudominio.com.br>
+
+# --- Mercado Pago ----------------------------------------------------------------
+# Local: use o access token de TESTE (sandbox). Produção: o de produção.
+MERCADOPAGO_ACCESS_TOKEN=
+# Só é gerado após configurar o webhook com a URL pública do backend.
+MERCADOPAGO_WEBHOOK_SECRET=
+
+# --- Checkout --------------------------------------------------------------------
+# Preço em reais (ex.: 97.00). Vazio = o checkout responde "não configurado".
+CHECKOUT_PRODUCT_PRICE_BRL=
+CHECKOUT_PRODUCT_TITLE=CarreiraPro — Acesso completo
+
+# --- URL pública deste backend --------------------------------------------------
+# (antes se chamava NEXT_PUBLIC_APP_URL — nome antigo, substituído)
+API_PUBLIC_URL=http://localhost:3001
+
+# --- IA (STAR e feedback do simulador) --------------------------------------------
+# Sem chave: análise heurística local. Com chave OpenAI: análise sênior por IA.
+# Para ativar: AI_PROVIDER=openai e preencha AI_PROVIDER_API_KEY.
+AI_PROVIDER=mock
+AI_PROVIDER_API_KEY=
+# Padrão gpt-4o (recomendado). gpt-4o-mini = mais barato, menos profundo.
+AI_PROVIDER_MODEL=
+
+# --- Transcrição de áudio ----------------------------------------------------------
+# Para ativar: TRANSCRIPTION_PROVIDER=whisper. A chave pode ficar vazia se
+# AI_PROVIDER=openai (reaproveita AI_PROVIDER_API_KEY).
+# Sem nenhuma chave: o simulador usa a transcrição do navegador ou texto digitado.
+TRANSCRIPTION_PROVIDER=mock
+TRANSCRIPTION_PROVIDER_API_KEY=
+TRANSCRIPTION_PROVIDER_MODEL=

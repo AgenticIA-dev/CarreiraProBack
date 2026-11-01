@@ -41,8 +41,11 @@ export async function sendEmail(email: Email): Promise<void> {
     return;
   }
 
+  const replyTo = process.env.EMAIL_REPLY_TO?.trim();
   await transport.sendMail({
-    from: process.env.EMAIL_FROM ?? "CarreiraPro <no-reply@localhost>",
+    from: process.env.EMAIL_FROM ?? "VoceUP <no-reply@localhost>",
+    // Respostas do cliente vão para o e-mail de atendimento (ex.: convite que não funcionou).
+    ...(replyTo ? { replyTo } : {}),
     to: email.to,
     subject: email.subject,
     text: email.text,
@@ -56,21 +59,24 @@ function escapeHtml(value: string): string {
 
 function linkEmail(to: string, subject: string, intro: string, cta: string, link: string, expiry: string): Email {
   const safeLink = escapeHtml(link);
+  const support = process.env.EMAIL_REPLY_TO?.trim();
   return {
     to,
     subject,
-    text: `${intro}\n\n${cta}: ${link}\n\n${expiry}\nSe você não fez essa solicitação, ignore este e-mail.`,
+    text: `${intro}\n\n${cta}: ${link}\n\n${expiry}\nSe você não fez essa solicitação, ignore este e-mail.${support ? `\nDúvidas: ${support}` : ""}`,
     html: `<p>${escapeHtml(intro)}</p>
 <p><a href="${safeLink}">${escapeHtml(cta)}</a></p>
-<p style="color:#666;font-size:13px">${escapeHtml(expiry)}<br>Se você não fez essa solicitação, ignore este e-mail.</p>`,
+<p style="color:#666;font-size:13px">${escapeHtml(expiry)}<br>Se você não fez essa solicitação, ignore este e-mail.${
+      support ? `<br>Dúvidas: ${escapeHtml(support)}` : ""
+    }</p>`,
   };
 }
 
 export function passwordResetEmail(to: string, link: string): Email {
   return linkEmail(
     to,
-    "CarreiraPro — redefinição de senha",
-    "Recebemos um pedido para redefinir a senha da sua conta no CarreiraPro.",
+    "VoceUP — redefinição de senha",
+    "Recebemos um pedido para redefinir a senha da sua conta no VoceUP.",
     "Definir nova senha",
     link,
     "Este link vale por 1 hora e só pode ser usado uma vez."
@@ -80,8 +86,8 @@ export function passwordResetEmail(to: string, link: string): Email {
 export function inviteEmail(to: string, link: string): Email {
   return linkEmail(
     to,
-    "CarreiraPro — seu acesso está liberado",
-    "Seu pagamento foi confirmado e seu acesso ao CarreiraPro está liberado. Crie sua senha para entrar.",
+    "VoceUP — seu acesso está liberado",
+    "Seu pagamento foi confirmado e seu acesso ao VoceUP está liberado. Crie sua senha para entrar.",
     "Criar minha senha",
     link,
     "Este link vale por 7 dias e só pode ser usado uma vez. Se expirar, use \"Esqueci minha senha\" na tela de login."

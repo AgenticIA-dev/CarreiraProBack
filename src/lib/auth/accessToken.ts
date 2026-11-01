@@ -11,8 +11,8 @@ import { SignJWT, jwtVerify } from "jose";
 
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 
-const ISSUER = "carreirapro-backend";
-const AUDIENCE = "carreirapro";
+const ISSUER = "voceup-backend";
+const AUDIENCE = "voceup";
 
 function getSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;

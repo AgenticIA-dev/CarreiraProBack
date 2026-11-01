@@ -1,4 +1,11 @@
 import type { QuestionCategory, QuestionDifficulty } from "@/types/database";
+import { aumentoPromocao } from "./questions/aumentoPromocao";
+import { comportamental } from "./questions/comportamental";
+import { fitCultural } from "./questions/fitCultural";
+import { lideranca } from "./questions/lideranca";
+import { situacional } from "./questions/situacional";
+import { star } from "./questions/star";
+import { tecnica } from "./questions/tecnica";
 
 export interface SeedQuestion {
   category: QuestionCategory;
@@ -16,11 +23,15 @@ export interface SeedQuestion {
  * São perguntas amplamente reconhecidas em processos seletivos e uma
  * estrutura recomendada de resposta — não respostas prontas apresentadas
  * como universais, e nada aqui simula depoimento, estatística ou avaliação
- * fabricada. Este arquivo é usado por `supabase/seed.sql`-equivalente via
- * script de seed (ver docs/DOCUMENTATION.md) para popular a tabela
- * `questions` em um ambiente com Supabase configurado.
+ * fabricada. Usado por `scripts/seed-questions.ts` (`npm run seed`) para
+ * popular a tabela `questions` — o script é idempotente (não duplica).
+ *
+ * Banco completo: 7 perguntas por nível (iniciante, intermediária, avançada)
+ * em cada uma das 6 competências de entrevista = 126 perguntas, mais 20 de
+ * "aumento_promocao" (conversas de carreira na empresa atual) = 146. As 10
+ * originais estão abaixo; as demais vivem em `src/data/questions/<competência>.ts`.
  */
-export const questionsSeed: SeedQuestion[] = [
+const originalQuestions: SeedQuestion[] = [
   {
     category: "comportamental",
     question: "Fale sobre um desafio profissional difícil que você enfrentou.",
@@ -134,4 +145,15 @@ export const questionsSeed: SeedQuestion[] = [
     things_to_avoid: ["Dizer que 'dá conta de tudo' sem um método real por trás."],
     difficulty: "intermediaria",
   },
+];
+
+export const questionsSeed: SeedQuestion[] = [
+  ...originalQuestions,
+  ...comportamental,
+  ...star,
+  ...tecnica,
+  ...situacional,
+  ...fitCultural,
+  ...lideranca,
+  ...aumentoPromocao,
 ];

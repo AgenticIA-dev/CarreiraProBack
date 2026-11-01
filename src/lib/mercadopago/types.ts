@@ -74,6 +74,9 @@ export interface CreatePreferenceRequest {
   back_urls: { success: string; failure: string; pending: string };
   auto_return?: "approved";
   notification_url?: string;
+  /** Texto na fatura do cartão (até 13 caracteres). */
+  statement_descriptor?: string;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 export interface CreatePreferenceResponse {

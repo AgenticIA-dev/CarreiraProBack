@@ -25,6 +25,8 @@ export const starFormSchema = z.object({
   task: z.string().trim().min(1, "Descreva a tarefa/desafio."),
   action: z.string().trim().min(1, "Descreva a ação que você tomou."),
   result: z.string().trim().min(1, "Descreva o resultado (mesmo que qualitativo)."),
+  targetQuestion: z.string().trim().max(500).optional().nullable(),
+  targetRole: z.string().trim().max(200).optional().nullable(),
 });
 
 export const profileUpdateSchema = z.object({

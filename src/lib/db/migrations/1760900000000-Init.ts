@@ -1,7 +1,7 @@
 import type { MigrationInterface, QueryRunner } from "typeorm";
 
 /**
- * Schema inicial do CarreiraPro (PostgreSQL 13+).
+ * Schema inicial do VoceUP (PostgreSQL 13+).
  *
  * Portado de `supabase/migrations/0001_init.sql`, com as diferenças da saída
  * do Supabase:

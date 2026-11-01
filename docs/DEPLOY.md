@@ -1,7 +1,7 @@
-# Deploy do CarreiraPro em servidor próprio
+# Deploy do VoceUP em servidor próprio
 
 > Esta cópia do guia está no projeto **backend**; uma cópia idêntica vive no projeto
-> **frontend** (`carreirapro-frontend/docs/DEPLOY.md`), porque o deploy envolve os dois
+> **frontend** (`voceup-frontend/docs/DEPLOY.md`), porque o deploy envolve os dois
 > projetos juntos.
 
 Tudo roda em servidor(es) seus: o backend (Node.js), o frontend (Next.js, rodando com
@@ -19,18 +19,19 @@ o servidor via DNS.
 - Um servidor SMTP para os e-mails de convite pós-compra e recuperação de senha (o e-mail do
   próprio domínio serve).
 
-## 1. Decidir os subdomínios
+## 1. Endereços do VoceUP
 
-| Projeto | Subdomínio sugerido | Porta local | O que serve |
+| Projeto | Endereço | Porta local | O que serve |
 |---|---|---|---|
-| `carreirapro-frontend` | `app.seudominio.com.br` (ou a raiz `seudominio.com.br`) | 3000 | a interface que o usuário acessa |
-| `carreirapro-backend` | `api.seudominio.com.br` | 3001 | a API chamada pelo frontend e pelo Mercado Pago |
+| `voceup-frontend` | `www.voceup.com.br` (a raiz `voceup.com.br` redireciona para o www) | 3000 | a interface que o usuário acessa |
+| `voceup-backend` | `api.voceup.com.br` | 3001 | a API chamada pelo frontend e pelo Mercado Pago |
 
 ## 2. DNS
 
 No painel DNS do domínio, crie registros **A** apontando para o IP do servidor:
 
-- `app` (ou `@`, se o frontend ficar na raiz) → IP do servidor
+- `@` (a raiz `voceup.com.br`) → IP do servidor
+- `www` → IP do servidor
 - `api` → IP do servidor
 
 Remova registros antigos em conflito para esses nomes. A propagação costuma levar de alguns
@@ -48,28 +49,28 @@ sudo npm install -g pm2
 ## 4. Banco de dados (PostgreSQL)
 
 ```bash
-sudo -u postgres psql -c "CREATE USER carreirapro WITH PASSWORD 'troque-esta-senha';"
-sudo -u postgres psql -c "CREATE DATABASE carreirapro OWNER carreirapro;"
+sudo -u postgres psql -c "CREATE USER voceup WITH PASSWORD 'troque-esta-senha';"
+sudo -u postgres psql -c "CREATE DATABASE voceup OWNER voceup;"
 ```
 
-`DATABASE_URL` do backend fica `postgres://carreirapro:troque-esta-senha@localhost:5432/carreirapro`
+`DATABASE_URL` do backend fica `postgres://voceup:troque-esta-senha@localhost:5432/voceup`
 (com `DATABASE_SSL=false`, já que a conexão é local). O PostgreSQL vem configurado para aceitar
 só conexões locais — mantenha assim.
 
 Faça backup regularmente, ex. com um cron diário:
-`pg_dump -U carreirapro carreirapro | gzip > /var/backups/carreirapro-$(date +%F).sql.gz`.
+`pg_dump -U voceup voceup | gzip > /var/backups/voceup-$(date +%F).sql.gz`.
 
 ## 5. Backend
 
 ```bash
-git clone <repositório do backend> ~/carreirapro-backend && cd ~/carreirapro-backend
+git clone <repositório do backend> ~/voceup-backend && cd ~/voceup-backend
 cp .env.example .env    # preencha (lista abaixo)
 npm ci && npm run build
 npm run db:migrate
 npm run seed
 npm run user:create -- --email voce@exemplo.com --password "senha-forte" --admin
 
-pm2 start npm --name carreirapro-backend -- start
+pm2 start npm --name voceup-backend -- start
 ```
 
 Variáveis do `.env` do backend (todas descritas em `.env.example`):
@@ -80,8 +81,8 @@ Variáveis do `.env` do backend (todas descritas em `.env.example`):
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `EMAIL_FROM`
 - `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`, `CHECKOUT_PRODUCT_PRICE_BRL` (após
   confirmar a seção 8 de `docs/DOCUMENTATION.md` do backend)
-- `API_PUBLIC_URL` → `https://api.seudominio.com.br`
-- `FRONTEND_ORIGIN` → `https://app.seudominio.com.br` (exata — sem isso, o CORS bloqueia todas
+- `API_PUBLIC_URL` → `https://api.voceup.com.br`
+- `FRONTEND_ORIGIN` → `https://www.voceup.com.br,https://voceup.com.br` (a 1ª é a oficial — sem isso, o CORS bloqueia todas
   as chamadas do navegador)
 - `PORT=3001`, `HOST=127.0.0.1` (só o Nginx acessa a porta diretamente)
 - `AI_PROVIDER_API_KEY` / `TRANSCRIPTION_PROVIDER_API_KEY` (opcionais; sem elas, usa os mocks)
@@ -89,30 +90,32 @@ Variáveis do `.env` do backend (todas descritas em `.env.example`):
 ## 6. Frontend
 
 ```bash
-git clone <repositório do frontend> ~/carreirapro-frontend && cd ~/carreirapro-frontend
+git clone <repositório do frontend> ~/voceup-frontend && cd ~/voceup-frontend
 cp .env.example .env.local    # preencha (lista abaixo)
 npm ci && npm run build
 
-PORT=3000 pm2 start npm --name carreirapro-frontend -- start -- -H 127.0.0.1
+PORT=3000 pm2 start npm --name voceup-frontend -- start -- -H 127.0.0.1
 pm2 save && pm2 startup       # os dois apps voltam sozinhos após reboot
 ```
 
 Variáveis do `.env.local` do frontend:
 
-- `NEXT_PUBLIC_API_URL` → `https://api.seudominio.com.br`
-- `NEXT_PUBLIC_APP_URL` → `https://app.seudominio.com.br`
+- `NEXT_PUBLIC_API_URL` → `https://api.voceup.com.br`
+- `NEXT_PUBLIC_APP_URL` → `https://www.voceup.com.br`
+- `NEXT_PUBLIC_COMPANY_*` → dados do vendedor exibidos no rodapé, na compra e nos textos legais
+  (razão social, CNPJ, endereço, e-mail de contato e de privacidade) — obrigatórios para vender
 - `NEXT_PUBLIC_GA_ID` / `NEXT_PUBLIC_GTM_ID` / `NEXT_PUBLIC_META_PIXEL_ID` (opcionais)
 
 **Importante:** variáveis `NEXT_PUBLIC_*` são gravadas no código durante o `npm run build`.
-Mudou alguma? Rode `npm run build` de novo e `pm2 restart carreirapro-frontend`.
+Mudou alguma? Rode `npm run build` de novo e `pm2 restart voceup-frontend`.
 
 ## 7. Nginx e HTTPS
 
-`/etc/nginx/sites-available/carreirapro`:
+`/etc/nginx/sites-available/voceup`:
 
 ```nginx
 server {
-  server_name api.seudominio.com.br;
+  server_name api.voceup.com.br;
   client_max_body_size 26m;   # upload de áudio do simulador (até 25 MB)
   location / {
     proxy_pass http://127.0.0.1:3001;
@@ -122,8 +125,14 @@ server {
   }
 }
 
+# voceup.com.br (sem www) → https://www.voceup.com.br (endereço oficial)
 server {
-  server_name app.seudominio.com.br;
+  server_name voceup.com.br;
+  return 301 https://www.voceup.com.br$request_uri;
+}
+
+server {
+  server_name www.voceup.com.br;
   location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_set_header Host $host;
@@ -134,12 +143,12 @@ server {
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/carreirapro /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/voceup /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 
 # HTTPS gratuito (Let's Encrypt), depois que o DNS da seção 2 propagar
 sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d api.seudominio.com.br -d app.seudominio.com.br
+sudo certbot --nginx -d api.voceup.com.br -d www.voceup.com.br -d voceup.com.br
 ```
 
 O `certbot` configura o redirecionamento HTTP → HTTPS e a renovação automática do certificado.
@@ -149,18 +158,18 @@ porta 3001 só deve ser acessível localmente (`HOST=127.0.0.1`, seção 5).
 
 ## 8. Verificar
 
-- `https://api.seudominio.com.br/api/health` responde `{"ok":true,...}`.
-- `https://app.seudominio.com.br` carrega, e o login com o admin criado na seção 5 funciona (o
+- `https://api.voceup.com.br/api/health` responde `{"ok":true,...}`.
+- `https://www.voceup.com.br` carrega, e o login com o admin criado na seção 5 funciona (o
   que confirma que o frontend está falando com o backend).
 - `pm2 status` mostra os dois apps `online`; `pm2 logs` mostra os logs.
 
 ## 9. Pós-deploy
 
 - No painel do Mercado Pago, configure o webhook com a URL do **backend**:
-  `https://api.seudominio.com.br/api/webhooks/mercadopago`.
+  `https://api.voceup.com.br/api/webhooks/mercadopago`.
 - Para atualizar cada projeto:
-  - backend: `cd ~/carreirapro-backend && git pull && npm ci && npm run build && npm run db:migrate && pm2 restart carreirapro-backend`
-  - frontend: `cd ~/carreirapro-frontend && git pull && npm ci && npm run build && pm2 restart carreirapro-frontend`
+  - backend: `cd ~/voceup-backend && git pull && npm ci && npm run build && npm run db:migrate && pm2 restart voceup-backend`
+  - frontend: `cd ~/voceup-frontend && git pull && npm ci && npm run build && pm2 restart voceup-frontend`
 
   Os dois são independentes — atualizar um não exige mexer no outro.
 

@@ -3,7 +3,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 /**
  * Valida a autenticidade de uma notificação de webhook do Mercado Pago.
  *
- * Mecanismo (ver PENDÊNCIA DE VERIFICAÇÃO em ./types.ts): o header
+ * Mecanismo (conferido na documentação oficial do Mercado Pago em 29/10/2026,
+ * "Notificações > Webhooks > Validar origem da notificação"): o header
  * `x-signature` vem no formato `ts=<timestamp>,v1=<hash>`. O hash é um
  * HMAC-SHA256 (hex) sobre um "manifest" montado como:
  *
@@ -23,7 +24,7 @@ export function verifyMercadoPagoWebhook(params: {
 }): boolean {
   const { signatureHeader, requestId, dataId, secret } = params;
 
-  if (!signatureHeader || !requestId || !dataId || !secret) return false;
+  if (!signatureHeader || !secret) return false;
 
   const parts = Object.fromEntries(
     signatureHeader
@@ -36,7 +37,13 @@ export function verifyMercadoPagoWebhook(params: {
   const v1 = parts.v1;
   if (!ts || !v1) return false;
 
-  const manifest = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${ts};`;
+  // Conforme a documentação: o data.id vai em minúsculas e qualquer valor
+  // ausente na notificação (data.id ou x-request-id) é retirado do manifest.
+  const manifestParts: string[] = [];
+  if (dataId) manifestParts.push(`id:${dataId.toLowerCase()}`);
+  if (requestId) manifestParts.push(`request-id:${requestId}`);
+  manifestParts.push(`ts:${ts}`);
+  const manifest = `${manifestParts.join(";")};`;
 
   const expected = createHmac("sha256", secret).update(manifest).digest("hex");
 

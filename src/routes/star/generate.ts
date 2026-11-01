@@ -1,6 +1,9 @@
 import { requireActiveApiUser } from "@/lib/auth/apiAuth";
+import { rateLimit } from "@/lib/security/rateLimit";
 import { StarResponseEntity } from "@/lib/db/entities";
 import { getAIProvider } from "@/lib/ai";
+import type { StarOutput } from "@/lib/ai/AIProvider";
+import { MockAIProvider } from "@/lib/ai/providers/MockAIProvider";
 import { starFormSchema } from "@/lib/validation/schemas";
 
 /**
@@ -17,20 +20,46 @@ export async function POST(request: Request) {
     return Response.json({ error: "Não autenticado." }, { status: 401 });
   }
 
+  // Limite diário por usuário: protege o custo de IA/transcrição contra abuso.
+  if (!rateLimit(`ai:star:${auth.userId}`, 30, 24 * 60 * 60 * 1000).allowed) {
+    return Response.json(
+      { error: "Você atingiu o limite diário de uso desta função. Tente novamente amanhã." },
+      { status: 429 }
+    );
+  }
+
   const json = await request.json().catch(() => null);
   const parsed = starFormSchema.safeParse(json);
   if (!parsed.success) {
     return Response.json(
-      { error: "Preencha ao menos um dos campos S/T/A/R antes de gerar.", issues: parsed.error.issues },
+      {
+        error: parsed.error.issues[0]?.message ?? "Preencha Situação, Tarefa, Ação e Resultado antes de gerar.",
+        issues: parsed.error.issues,
+      },
       { status: 400 }
     );
   }
 
-  const { situation, task, action, result, questionId } = parsed.data;
+  const { situation, task, action, result, questionId, targetQuestion, targetRole } = parsed.data;
+  const input = {
+    situation,
+    task,
+    action,
+    result,
+    targetQuestion: targetQuestion ?? undefined,
+    targetRole: targetRole ?? undefined,
+  };
 
   try {
     const provider = getAIProvider();
-    const output = await provider.generateStarResponse({ situation, task, action, result });
+    let output: StarOutput;
+    try {
+      output = await provider.generateStarResponse(input);
+    } catch (err) {
+      // IA externa indisponível/resposta inválida: usa a estruturação local.
+      console.error(`[star] Provedor "${provider.name}" falhou; usando heurística local:`, err);
+      output = await new MockAIProvider().generateStarResponse(input);
+    }
 
     const repo = auth.db.getRepository(StarResponseEntity);
     const saved = await repo.save(
@@ -46,8 +75,9 @@ export async function POST(request: Request) {
       })
     );
 
-    return Response.json({ starResponse: saved, notes: output.notes });
-  } catch {
+    return Response.json({ starResponse: saved, notes: output.notes, analysis: output.analysis ?? null });
+  } catch (err) {
+    console.error("[star] Falha ao gerar/salvar resposta STAR:", err);
     return Response.json(
       { error: "Não foi possível gerar sua resposta agora. Tente novamente em instantes." },
       { status: 502 }
