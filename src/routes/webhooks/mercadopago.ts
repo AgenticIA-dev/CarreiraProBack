@@ -68,7 +68,23 @@ export async function POST(request: Request) {
   }
 
   const action = payload.action ?? "payment.updated";
-  const idempotencyKey = buildIdempotencyKey(action, dataId);
+
+  // O status real é consultado ANTES do controle de duplicidade e entra na
+  // chave: o Mercado Pago avisa aprovação e reembolso com o MESMO evento
+  // ("payment.updated") e o mesmo id de pagamento. Com a chave antiga
+  // (evento + id), o aviso do reembolso era tratado como repetido e ignorado,
+  // e o acesso não era revogado. Agora cada mudança de status é processada
+  // uma vez; reenvios do mesmo status continuam sendo ignorados.
+  let payment: MercadoPagoPayment;
+  try {
+    payment = await getPayment(dataId);
+  } catch (err) {
+    // Falha temporária na API do Mercado Pago: 500 faz o Mercado Pago reenviar.
+    console.error(`[webhook] Falha ao consultar o pagamento ${dataId}:`, err);
+    return Response.json({ error: "Erro ao consultar o pagamento." }, { status: 500 });
+  }
+
+  const idempotencyKey = `${buildIdempotencyKey(action, dataId)}:${payment.status}`;
   const db = await getDb();
   const events = db.getRepository(WebhookEventEntity);
 
@@ -113,7 +129,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const payment = await getPayment(dataId);
     await processPayment(db, payment, action);
 
     await events.update(
