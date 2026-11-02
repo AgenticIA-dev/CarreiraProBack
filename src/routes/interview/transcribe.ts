@@ -3,6 +3,7 @@ import { requireActiveApiUser } from "@/lib/auth/apiAuth";
 import { rateLimit } from "@/lib/security/rateLimit";
 import { InterviewSessionEntity } from "@/lib/db/entities";
 import { getTranscriptionProvider } from "@/lib/transcription";
+import { recordUsage } from "@/lib/usage/meter";
 
 const sessionIdSchema = z.string().uuid();
 
@@ -56,6 +57,19 @@ export async function POST(request: Request) {
 
     const result = await provider.transcribe(audio, audio.type || "audio/webm");
     const available = result.available !== false;
+    if (available) {
+      await recordUsage(auth.db, {
+        userId: auth.userId,
+        kind: "transcription",
+        request,
+        transcription: {
+          provider: provider.name,
+          model: provider.model ?? provider.name,
+          seconds: result.durationSeconds,
+        },
+        meta: { sessionId: sessionId.data, bytes: audio.size },
+      });
+    }
 
     await sessions.update(where, {
       // Sem transcrição real (mock), não grava nada: o texto virá do

@@ -8,6 +8,7 @@ import type {
   QuestionFavoriteRow,
   QuestionRow,
   StarResponseRow,
+  UsageEventRow,
   UserWithPasswordRow,
   WebhookEventRow,
 } from "@/types/database";
@@ -225,6 +226,26 @@ export const WebhookEventEntity = new EntitySchema<WebhookEventRow>({
   },
 });
 
+export const UsageEventEntity = new EntitySchema<UsageEventRow>({
+  name: "UsageEvent",
+  tableName: "usage_events",
+  columns: {
+    id,
+    user_id: { type: "uuid" },
+    kind: { type: "text" },
+    provider: { type: "text", nullable: true },
+    model: { type: "text", nullable: true },
+    input_tokens: { type: "integer", nullable: true },
+    output_tokens: { type: "integer", nullable: true },
+    audio_seconds: { type: "integer", nullable: true },
+    cost_usd: { type: "numeric", precision: 12, scale: 6, default: 0 },
+    ip: { type: "text", nullable: true },
+    user_agent: { type: "text", nullable: true },
+    meta: { type: "jsonb", nullable: true },
+    created_at: createdAt,
+  },
+});
+
 export const entities = [
   UserEntity,
   AuthTokenEntity,
@@ -236,4 +257,5 @@ export const entities = [
   ConsentRecordEntity,
   DataRequestEntity,
   WebhookEventEntity,
+  UsageEventEntity,
 ];

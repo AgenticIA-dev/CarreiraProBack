@@ -5,6 +5,7 @@ import { getAIProvider } from "@/lib/ai";
 import type { StarOutput } from "@/lib/ai/AIProvider";
 import { MockAIProvider } from "@/lib/ai/providers/MockAIProvider";
 import { starFormSchema } from "@/lib/validation/schemas";
+import { recordUsage, withUsageMeter } from "@/lib/usage/meter";
 
 /**
  * Gera uma resposta estruturada pelo método STAR a partir do que o usuário
@@ -52,14 +53,16 @@ export async function POST(request: Request) {
 
   try {
     const provider = getAIProvider();
-    let output: StarOutput;
-    try {
-      output = await provider.generateStarResponse(input);
-    } catch (err) {
-      // IA externa indisponível/resposta inválida: usa a estruturação local.
-      console.error(`[star] Provedor "${provider.name}" falhou; usando heurística local:`, err);
-      output = await new MockAIProvider().generateStarResponse(input);
-    }
+    const { result: output, calls } = await withUsageMeter(async (): Promise<StarOutput> => {
+      try {
+        return await provider.generateStarResponse(input);
+      } catch (err) {
+        // IA externa indisponível/resposta inválida: usa a estruturação local.
+        console.error(`[star] Provedor "${provider.name}" falhou; usando heurística local:`, err);
+        return new MockAIProvider().generateStarResponse(input);
+      }
+    });
+    await recordUsage(auth.db, { userId: auth.userId, kind: "star", request, calls });
 
     const repo = auth.db.getRepository(StarResponseEntity);
     const saved = await repo.save(

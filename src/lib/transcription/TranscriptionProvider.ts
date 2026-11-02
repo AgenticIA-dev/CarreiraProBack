@@ -14,5 +14,7 @@ export interface TranscriptionResult {
 
 export interface TranscriptionProvider {
   readonly name: string;
+  /** Modelo usado (para o cálculo de custo por usuário). */
+  readonly model?: string;
   transcribe(audio: Blob | Buffer, mimeType: string): Promise<TranscriptionResult>;
 }

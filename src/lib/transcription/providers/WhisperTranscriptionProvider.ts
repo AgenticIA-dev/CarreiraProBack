@@ -37,7 +37,7 @@ export class WhisperTranscriptionProvider implements TranscriptionProvider {
 
   constructor(
     private readonly apiKey: string,
-    private readonly model: string = "whisper-1"
+    readonly model: string = "whisper-1"
   ) {}
 
   async transcribe(audio: Blob | Buffer, mimeType: string): Promise<TranscriptionResult> {

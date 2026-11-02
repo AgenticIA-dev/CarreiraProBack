@@ -154,6 +154,26 @@ export interface WebhookEventRow {
   created_at: Timestamp;
 }
 
+export type UsageKind = "login" | "transcription" | "simulation_feedback" | "star";
+
+/** Registro de uso por usuário (ver migration 1793500000000-UsageEvents). */
+export interface UsageEventRow {
+  id: string;
+  user_id: string;
+  kind: UsageKind;
+  provider: string | null;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  audio_seconds: number | null;
+  /** numeric no Postgres: o driver devolve como string. */
+  cost_usd: number | string;
+  ip: string | null;
+  user_agent: string | null;
+  meta: Record<string, unknown> | null;
+  created_at: Timestamp;
+}
+
 export interface QuestionFavoriteRow {
   user_id: string;
   question_id: string;

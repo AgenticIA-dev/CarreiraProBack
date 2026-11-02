@@ -4,6 +4,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { issueSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rateLimit";
 import { loginSchema } from "@/lib/validation/schemas";
+import { recordUsage } from "@/lib/usage/meter";
 
 /**
  * Login por e-mail/senha. Devolve os tokens da sessão; quem os guarda
@@ -50,6 +51,9 @@ export async function POST(request: Request) {
 
     const session = await issueSession(db, user);
     await users.update({ id: user.id }, { last_login_at: new Date() });
+    // Histórico de acessos (data, IP, navegador): relatório do admin e prova
+    // de uso em disputas. O IP real vem do frontend em `x-client-ip`.
+    await recordUsage(db, { userId: user.id, kind: "login", request });
 
     return Response.json({ session });
   } catch {

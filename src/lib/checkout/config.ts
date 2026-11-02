@@ -6,7 +6,7 @@
  * preço nem duração:
  *  - CHECKOUT_PRODUCT_PRICE_BRL  preço em reais (ex.: 97.00)
  *  - CHECKOUT_PRODUCT_TITLE      nome exibido no Mercado Pago (opcional)
- *  - CHECKOUT_ACCESS_MONTHS      duração do acesso: número de meses (ex.: 12)
+ *  - CHECKOUT_ACCESS_MONTHS      duração do acesso: número de meses (ex.: 3)
  *                                ou "vitalicio". Obrigatório — os Termos e a
  *                                página de compra informam esse prazo, e o
  *                                sistema o aplica de fato (users.access_expires_at).
@@ -16,7 +16,7 @@
  */
 
 /** Versão dos Termos de Uso/Política de Privacidade aceitos na compra. Atualize ao mudar os textos. */
-export const TERMS_VERSION = "2026-10-29";
+export const TERMS_VERSION = "2026-11-02";
 
 export interface CheckoutConfig {
   configured: boolean;

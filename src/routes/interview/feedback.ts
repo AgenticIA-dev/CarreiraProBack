@@ -5,6 +5,7 @@ import { InterviewSessionEntity, QuestionEntity } from "@/lib/db/entities";
 import { getAIProvider } from "@/lib/ai";
 import type { EvaluateResponseOutput } from "@/lib/ai/AIProvider";
 import { MockAIProvider } from "@/lib/ai/providers/MockAIProvider";
+import { recordUsage, withUsageMeter } from "@/lib/usage/meter";
 
 const bodySchema = z.object({
   sessionId: z.string().uuid(),
@@ -74,15 +75,23 @@ export async function POST(request: Request) {
     await sessions.update(where, { status: "scoring" });
 
     const provider = getAIProvider();
-    let evaluation: EvaluateResponseOutput;
-    try {
-      evaluation = await provider.evaluateInterviewResponse({ question, transcript, context });
-    } catch (err) {
-      // IA externa fora do ar / resposta malformada: não deixa o usuário sem
-      // feedback — usa a avaliação heurística local (marcada como tal).
-      console.error(`[feedback] Provedor "${provider.name}" falhou; usando heurística local:`, err);
-      evaluation = await new MockAIProvider().evaluateInterviewResponse({ question, transcript, context });
-    }
+    const { result: evaluation, calls } = await withUsageMeter(async (): Promise<EvaluateResponseOutput> => {
+      try {
+        return await provider.evaluateInterviewResponse({ question, transcript, context });
+      } catch (err) {
+        // IA externa fora do ar / resposta malformada: não deixa o usuário sem
+        // feedback — usa a avaliação heurística local (marcada como tal).
+        console.error(`[feedback] Provedor "${provider.name}" falhou; usando heurística local:`, err);
+        return new MockAIProvider().evaluateInterviewResponse({ question, transcript, context });
+      }
+    });
+    await recordUsage(auth.db, {
+      userId: auth.userId,
+      kind: "simulation_feedback",
+      request,
+      calls,
+      meta: { sessionId, context, category, score: evaluation.score },
+    });
 
     const feedback = formatFeedback(evaluation);
 

@@ -10,6 +10,7 @@ import type {
   StarInput,
   StarOutput,
 } from "../AIProvider";
+import { reportAiUsage } from "@/lib/usage/meter";
 
 /**
  * Implementação real via API compatível com a Chat Completions da OpenAI.
@@ -97,8 +98,18 @@ export class OpenAIProvider implements AIProvider {
     }
 
     const data = (await response.json()) as {
+      model?: string;
       choices: { message: { content: string } }[];
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
+
+    // Tokens informados pela própria OpenAI → custo por usuário no admin.
+    reportAiUsage({
+      provider: this.name,
+      model: data.model ?? this.model,
+      inputTokens: data.usage?.prompt_tokens ?? 0,
+      outputTokens: data.usage?.completion_tokens ?? 0,
+    });
 
     const content = data.choices[0]?.message.content;
     if (!content) throw new Error("Resposta vazia do provedor de IA.");
