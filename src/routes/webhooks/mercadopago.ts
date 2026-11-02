@@ -141,7 +141,14 @@ async function processPayment(db: DataSource, payment: MercadoPagoPayment, event
     throw new Error(`Status de pagamento não reconhecido: ${payment.status}`);
   }
 
-  const email = (payment.payer?.email || payment.external_reference || "").trim().toLowerCase() || null;
+  // Prioriza o e-mail digitado na página de compra (external_reference), que é
+  // onde o cliente espera o convite e para o qual aceitou os Termos. O e-mail
+  // da conta Mercado Pago do pagador (payer.email) pode ser outro — e, em
+  // teste, é o do usuário de teste —, então fica só como reserva.
+  const email =
+    (payment.external_reference?.includes("@") ? payment.external_reference : payment.payer?.email || "")
+      .trim()
+      .toLowerCase() || null;
   const userStatus = mapPaymentToUserStatus(payment.status);
   // O mesmo pagamento gera várias notificações (created/updated): o prazo do
   // acesso só é estendido na primeira vez em que ele aparece como aprovado.
