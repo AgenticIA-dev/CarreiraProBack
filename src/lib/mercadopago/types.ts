@@ -77,6 +77,12 @@ export interface CreatePreferenceRequest {
   /** Texto na fatura do cartão (até 13 caracteres). */
   statement_descriptor?: string;
   metadata?: Record<string, string | number | boolean>;
+  /** Formas de pagamento: tipos excluídos e número máximo de parcelas. */
+  payment_methods?: {
+    excluded_payment_types?: { id: string }[];
+    excluded_payment_methods?: { id: string }[];
+    installments?: number;
+  };
 }
 
 export interface CreatePreferenceResponse {

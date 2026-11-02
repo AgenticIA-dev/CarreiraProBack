@@ -100,6 +100,14 @@ export async function POST(request: Request) {
       auto_return: "approved",
       notification_url: `${backendUrl}/api/webhooks/mercadopago`,
       statement_descriptor: "VOCEUP",
+      // Formas aceitas: Pix, cartão de débito e cartão de crédito (à vista,
+      // 2x ou 3x — juros do parcelamento por conta do comprador, padrão do
+      // Mercado Pago). Boleto desligado. "Dinheiro em conta" do Mercado Pago
+      // não pode ser excluído (regra do próprio Mercado Pago).
+      payment_methods: {
+        excluded_payment_types: [{ id: "ticket" }],
+        installments: 3,
+      },
       // Registro do aceite dos termos (versão e momento) junto ao pagamento.
       metadata: {
         terms_version: config.termsVersion,
