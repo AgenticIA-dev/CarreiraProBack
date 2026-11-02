@@ -36,11 +36,13 @@ import type { UserStatus } from "@/types/database";
  * ~15 minutos de intervalo).
  */
 export async function POST(request: Request) {
-  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  if (!secret) {
-    // Nunca aceitar notificações sem segredo de validação configurado.
-    return Response.json({ error: "Webhook não configurado." }, { status: 503 });
-  }
+  // Assinatura (x-signature) é uma camada extra: o status real do pagamento
+  // SEMPRE vem da consulta à API do Mercado Pago com o nosso access token
+  // (getPayment abaixo), então uma notificação forjada não libera acesso.
+  // Com MERCADOPAGO_WEBHOOK_SECRET preenchido, a assinatura é obrigatória;
+  // vazio (ex.: painel não exibe a chave, ou usuário de teste com outra
+  // aplicação), a notificação é aceita e só dispara essa consulta.
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim() || "";
 
   const payload = (await request.json().catch(() => null)) as MercadoPagoWebhookPayload | null;
 
@@ -54,9 +56,15 @@ export async function POST(request: Request) {
   const signatureHeader = request.headers.get("x-signature");
   const requestId = request.headers.get("x-request-id");
 
-  const isValid = verifyMercadoPagoWebhook({ signatureHeader, requestId, dataId, secret });
-  if (!isValid) {
-    return Response.json({ error: "Assinatura inválida." }, { status: 401 });
+  if (secret) {
+    const isValid = verifyMercadoPagoWebhook({ signatureHeader, requestId, dataId, secret });
+    if (!isValid) {
+      return Response.json({ error: "Assinatura inválida." }, { status: 401 });
+    }
+  } else {
+    console.warn(
+      `[webhook] MERCADOPAGO_WEBHOOK_SECRET vazio: assinatura não verificada (pagamento ${dataId} será confirmado na API do Mercado Pago).`
+    );
   }
 
   const action = payload.action ?? "payment.updated";
