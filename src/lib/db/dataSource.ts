@@ -5,6 +5,7 @@ import { Init1760900000000 } from "./migrations/1760900000000-Init";
 import { AumentoPromocao1793300000000 } from "./migrations/1793300000000-AumentoPromocao";
 import { AccessExpiry1793400000000 } from "./migrations/1793400000000-AccessExpiry";
 import { UsageEvents1793500000000 } from "./migrations/1793500000000-UsageEvents";
+import { Courtesy1793600000000 } from "./migrations/1793600000000-Courtesy";
 
 /**
  * Conexão com o PostgreSQL via TypeORM.
@@ -36,6 +37,7 @@ export function buildDataSourceOptions(): DataSourceOptions {
       AumentoPromocao1793300000000,
       AccessExpiry1793400000000,
       UsageEvents1793500000000,
+      Courtesy1793600000000,
     ],
     migrationsTableName: "typeorm_migrations",
     synchronize: false,

@@ -8,6 +8,7 @@ import * as accountPassword from "@/routes/account/password";
 import * as accountProfile from "@/routes/account/profile";
 import * as adminQuestions from "@/routes/admin/questions";
 import * as adminStats from "@/routes/admin/stats";
+import * as adminTesters from "@/routes/admin/testers";
 import * as adminUsage from "@/routes/admin/usage";
 import * as adminUsers from "@/routes/admin/users";
 import * as authForgotPassword from "@/routes/auth/forgot-password";
@@ -87,6 +88,8 @@ export function createApp() {
   app.get("/api/admin/stats", handle(adminStats.GET));
   app.get("/api/admin/users", handle(adminUsers.GET));
   app.get("/api/admin/usage", handle(adminUsage.GET));
+  app.get("/api/admin/testers", handle(adminTesters.GET));
+  app.post("/api/admin/testers", handle(adminTesters.POST));
   app.get("/api/admin/questions", handle(adminQuestions.GET));
 
   // Pagamento

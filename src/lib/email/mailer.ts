@@ -83,6 +83,21 @@ export function passwordResetEmail(to: string, link: string): Email {
   );
 }
 
+/** Convite de testador (acesso de cortesia, sem pagamento). */
+export function testerInviteEmail(to: string, link: string, days: number, name?: string | null): Email {
+  const site = (process.env.FRONTEND_ORIGIN ?? "").split(",")[0]?.trim().replace(/\/+$/, "") || "";
+  const terms = site ? ` Ao usar a plataforma, você concorda com os Termos de Uso (${site}/termos) e a Política de Privacidade (${site}/privacidade).` : "";
+  const hello = name ? `Olá, ${name}!` : "Olá!";
+  return linkEmail(
+    to,
+    "VoceUP — seu acesso de teste está liberado",
+    `${hello} Você foi convidado(a) para testar o VoceUP gratuitamente por ${days} ${days === 1 ? "dia" : "dias"}, com acesso completo. Seu feedback vai ajudar a melhorar a plataforma — é só responder este e-mail contando o que achou.${terms} Crie sua senha para entrar.`,
+    "Criar minha senha",
+    link,
+    `O acesso de teste termina ${days} ${days === 1 ? "dia" : "dias"} após este convite. O link vale por 7 dias e só pode ser usado uma vez; se expirar, use "Esqueci minha senha" na tela de login.`
+  );
+}
+
 export function inviteEmail(to: string, link: string): Email {
   return linkEmail(
     to,

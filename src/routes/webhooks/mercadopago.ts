@@ -207,7 +207,13 @@ async function syncUserAccess(
     await users.update(
       { id: existing.id },
       status === "active" && extendAccess
-        ? { status, access_expires_at: computeAccessExpiry(existing.access_expires_at) }
+        ? {
+            status,
+            // Testador que compra vira cliente: o prazo comprado conta a partir
+            // de hoje (não soma aos dias de cortesia) e a marca de cortesia sai.
+            access_expires_at: computeAccessExpiry(existing.is_courtesy ? null : existing.access_expires_at),
+            is_courtesy: false,
+          }
         : { status }
     );
     return existing.id;

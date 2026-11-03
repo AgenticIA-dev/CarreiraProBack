@@ -50,6 +50,8 @@ export const UserEntity = new EntitySchema<UserWithPasswordRow>({
     updated_at: updatedAt,
     last_login_at: { type: "timestamptz", nullable: true },
     access_expires_at: { type: "timestamptz", nullable: true },
+    is_courtesy: { type: "boolean", default: false },
+    courtesy_granted_at: { type: "timestamptz", nullable: true },
   },
 });
 

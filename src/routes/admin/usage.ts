@@ -35,6 +35,8 @@ export interface UsageReportRow {
   email: string;
   role: string;
   status: string;
+  /** Testador com acesso de cortesia (fora da receita e da margem). */
+  isCourtesy: boolean;
   createdAt: string;
   purchasedAt: string | null;
   paymentMethod: string | null;
@@ -233,7 +235,14 @@ async function buildReport(db: DataSource) {
     const avgScore = s?.avg_score === null || s?.avg_score === undefined ? null : round2(num(s.avg_score));
 
     const signals: string[] = [];
-    const isBuyer = u.role !== "admin" && Boolean(purchase);
+    if (u.is_courtesy) {
+      signals.push("Cortesia (testador)");
+      if (u.status === "active" && daysLeft !== null && daysLeft <= 2) {
+        signals.push(`Teste termina em ${Math.max(daysLeft, 0)} dia(s): pedir feedback e oferecer compra`);
+      }
+      if (simsInterview + simsRaise + starCount === 0) signals.push("Testador sem uso");
+    }
+    const isBuyer = u.role !== "admin" && !u.is_courtesy && Boolean(purchase);
     if (isBuyer) {
       const totalUse = simsInterview + simsRaise + starCount;
       if (purchase?.refunded) signals.push("Reembolsado");
@@ -253,6 +262,7 @@ async function buildReport(db: DataSource) {
       email: u.email,
       role: u.role,
       status: u.status,
+      isCourtesy: Boolean(u.is_courtesy),
       createdAt: iso(u.created_at)!,
       purchasedAt: purchase?.purchasedAt ?? null,
       paymentMethod: purchase?.method ?? null,
@@ -281,7 +291,8 @@ async function buildReport(db: DataSource) {
     };
   });
 
-  const buyers = rows.filter((r) => r.role !== "admin");
+  const buyers = rows.filter((r) => r.role !== "admin" && !r.isCourtesy);
+  const testers = rows.filter((r) => r.isCourtesy);
   const totals = {
     users: buyers.length,
     activeUsers: buyers.filter((r) => r.status === "active").length,
@@ -290,6 +301,8 @@ async function buildReport(db: DataSource) {
     aiCostBrl: round2(rows.reduce((s, r) => s + r.aiCostBrl, 0)),
     marginBrl: round2(buyers.reduce((s, r) => s + r.marginBrl, 0)),
     refunds: buyers.filter((r) => r.refunded).length,
+    testers: testers.length,
+    testersAiCostBrl: round2(testers.reduce((s, r) => s + r.aiCostBrl, 0)),
   };
 
   return { generatedAt: new Date(now).toISOString(), usdBrlRate: rate, totals, users: rows };
@@ -300,7 +313,7 @@ async function buildReport(db: DataSource) {
 const COLUMNS: { header: string; value: (r: UsageReportRow) => string | number | null }[] = [
   { header: "Nome", value: (r) => r.name },
   { header: "E-mail", value: (r) => r.email },
-  { header: "Perfil", value: (r) => (r.role === "admin" ? "Admin" : "Cliente") },
+  { header: "Perfil", value: (r) => (r.role === "admin" ? "Admin" : r.isCourtesy ? "Cortesia (testador)" : "Cliente") },
   { header: "Status", value: (r) => r.status },
   { header: "Cadastro", value: (r) => fmtDate(r.createdAt) },
   { header: "Data da compra", value: (r) => fmtDate(r.purchasedAt) },

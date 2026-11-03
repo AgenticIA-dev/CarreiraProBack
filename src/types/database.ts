@@ -57,6 +57,9 @@ export interface UserRow {
   last_login_at: Timestamp | null;
   /** Fim do acesso comprado; null = sem expiração. */
   access_expires_at: Timestamp | null;
+  /** Acesso de cortesia (testador convidado pelo admin, sem pagamento). */
+  is_courtesy: boolean;
+  courtesy_granted_at: Timestamp | null;
 }
 
 export interface PurchaseRow {
