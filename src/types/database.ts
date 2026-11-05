@@ -23,6 +23,9 @@ export type UserStatus =
 
 export type UserRole = "user" | "admin";
 
+/** Nível de experiência declarado pelo usuário — calibra a régua da IA e a dificuldade padrão das perguntas. */
+export type UserExperienceLevel = "junior" | "pleno" | "senior";
+
 /** Status de pagamento, nos termos documentados pela API do Mercado Pago. */
 export type PurchaseStatus =
   | "pending"
@@ -60,6 +63,8 @@ export interface UserRow {
   /** Acesso de cortesia (testador convidado pelo admin, sem pagamento). */
   is_courtesy: boolean;
   courtesy_granted_at: Timestamp | null;
+  /** Nulo = não informado (comportamento padrão, régua sênior exigente). */
+  experience_level: UserExperienceLevel | null;
 }
 
 export interface PurchaseRow {
@@ -157,7 +162,7 @@ export interface WebhookEventRow {
   created_at: Timestamp;
 }
 
-export type UsageKind = "login" | "transcription" | "simulation_feedback" | "star";
+export type UsageKind = "login" | "transcription" | "simulation_feedback" | "star" | "audio";
 
 /** Registro de uso por usuário (ver migration 1793500000000-UsageEvents). */
 export interface UsageEventRow {
@@ -180,6 +185,21 @@ export interface UsageEventRow {
 export interface QuestionFavoriteRow {
   user_id: string;
   question_id: string;
+  created_at: Timestamp;
+}
+
+export type QuestionAudioKind = "question" | "ideal";
+
+/** Áudio (texto-para-voz) pré-gerado de uma pergunta — ver migration QuestionAudio. */
+export interface QuestionAudioRow {
+  id: string;
+  question_id: string;
+  kind: QuestionAudioKind;
+  /** bytea: Buffer quando lido pelo TypeORM. */
+  mp3: Buffer;
+  voice: string;
+  provider: string;
+  model: string;
   created_at: Timestamp;
 }
 

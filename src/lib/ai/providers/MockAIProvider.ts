@@ -222,6 +222,21 @@ export class MockAIProvider implements AIProvider {
     if (blame) redFlags.push("Atribui o problema a terceiros sem mostrar o próprio papel na solução.");
     if (transcript && !star.resultado) redFlags.push("Não há resultado — o entrevistador fica sem saber se a ação funcionou.");
 
+    // Calibração por nível de experiência (item C da avaliação de UX, 04/11/2026).
+    // Ausente = sem calibração (comportamento de sempre). A nota numérica não
+    // muda (fica comparável); o que muda é a exigência sobre sinais de
+    // senioridade e os limiares de "maturidade da resposta".
+    const level = input.experienceLevel;
+    if (transcript && level === "junior") {
+      strengths.push(
+        "Pelo seu nível (júnior), o que mais importa agora é estrutura e clareza — sinais de senioridade (ownership, trade-offs, visão de negócio) vêm com o tempo e não pesam contra você ainda."
+      );
+    } else if (transcript && level === "senior" && seniorSignals.length === 0) {
+      improvements.push(
+        "Para o nível sênior, a resposta precisa mostrar sinais claros de senioridade — ownership, trade-offs explicados, visão de negócio ou influência sobre outras áreas. Sem isso, a resposta soa junior/pleno mesmo bem estruturada."
+      );
+    }
+
     // Modo aumento/promoção: sinais específicos de uma boa conversa de carreira.
     const career = input.context === "aumento_promocao";
     if (career && transcript) {
@@ -295,7 +310,7 @@ export class MockAIProvider implements AIProvider {
           ? `Grave de novo esta mesma pergunta corrigindo primeiro: ${improvements[0]?.split(".")[0]}.`
           : "Pratique outra pergunta de categoria diferente para manter a consistência.",
       analysis: {
-        answerMaturity: score >= 85 ? "sênior" : score >= 70 ? "sólida" : score >= 45 ? "em desenvolvimento" : "inicial",
+        answerMaturity: maturityLabel(score, level),
         verdict: !transcript
           ? "Não houve conteúdo para avaliar."
           : career
@@ -339,6 +354,26 @@ export class MockAIProvider implements AIProvider {
     const index = Math.floor(Math.random() * available.length);
     return available[index]!;
   }
+}
+
+/**
+ * Rótulo de "maturidade da resposta" a partir da nota (0–100), com os
+ * limiares deslocados pelo nível de experiência declarado: mesma nota lê
+ * como um rótulo mais generoso para quem é júnior e mais exigente para quem
+ * é sênior — a nota numérica em si não muda. Sem nível informado, usa os
+ * limiares padrão (mesmo comportamento de antes desta calibração).
+ */
+function maturityLabel(
+  score: number,
+  level?: "junior" | "pleno" | "senior"
+): "inicial" | "em desenvolvimento" | "sólida" | "sênior" {
+  const t =
+    level === "junior"
+      ? { senior: 75, solida: 55, dev: 30 }
+      : level === "senior"
+        ? { senior: 90, solida: 75, dev: 55 }
+        : { senior: 85, solida: 70, dev: 45 };
+  return score >= t.senior ? "sênior" : score >= t.solida ? "sólida" : score >= t.dev ? "em desenvolvimento" : "inicial";
 }
 
 /** Minúsculas e sem acentos — `\b` do JavaScript não reconhece letras acentuadas. */

@@ -62,6 +62,17 @@ RED FLAGS a apontar: ultimato ou ameaça de sair; blefe com proposta externa; co
 Em "followUpQuestions", liste objeções e perguntas que o gestor/RH provavelmente faria em seguida (ex.: orçamento, prontidão, comparação com o time).
 Em "nextAction", proponha um exercício concreto para a próxima conversa (ex.: montar o resumo de uma página com entregas e faixa de mercado).`;
 
+/**
+ * Calibração da régua por nível de experiência (item C da avaliação de UX,
+ * 04/11/2026 — "nivelar o feedback por experiência"). Ausente = sem
+ * calibração, comportamento de sempre (régua sênior exigente para todos).
+ */
+const EXPERIENCE_CALIBRATION: Record<"junior" | "pleno" | "senior", string> = {
+  junior: `CALIBRAÇÃO DE NÍVEL: o candidato se identifica como JÚNIOR (iniciando a carreira ou com pouca experiência profissional). Ajuste a régua: NÃO exija nem penalize a ausência de sinais de senioridade (influência sem autoridade, visão sistêmica de negócio, decisões de grande escala, trade-offs complexos) — isso vem com o tempo e não cabe nessa fase. Para esse nível, uma resposta bem estruturada (STAR), clara e com um resultado honesto, mesmo pequeno ou qualitativo, já merece nota alta (21–25 por critério). Foque o feedback no que é apropriado agora: estrutura, clareza, assumir o próprio papel. Nunca compare implicitamente o nível dele ao de um sênior, nem no "verdict" nem nas "improvements".`,
+  pleno: `CALIBRAÇÃO DE NÍVEL: o candidato se identifica como PLENO (já atua com alguma autonomia, não é mais iniciante). Mantenha a régua padrão descrita acima: busque estrutura sólida e resultado com evidência, e já comece a notar e valorizar sinais de ownership/trade-offs quando aparecerem — mas sem exigir o nível de impacto/visão estratégica de um sênior.`,
+  senior: `CALIBRAÇÃO DE NÍVEL: o candidato se identifica como SÊNIOR/líder. Mantenha o padrão mais exigente: espere sinais claros de senioridade (ownership, trade-offs explicados, visão de negócio, influência sobre outras áreas, uso de dados). A AUSÊNCIA desses sinais deve pesar na nota e aparecer nas "improvements", mesmo que a resposta esteja bem estruturada — para esse nível, só estrutura e clareza não bastam.`,
+};
+
 export class OpenAIProvider implements AIProvider {
   readonly name = "openai";
 
@@ -218,6 +229,7 @@ Responda SOMENTE com JSON válido (sem markdown), exatamente neste formato:
 
   async evaluateInterviewResponse(input: EvaluateResponseInput): Promise<EvaluateResponseOutput> {
     const guide = input.context === "aumento_promocao" ? CAREER_GUIDE : INTERVIEW_GUIDE;
+    const calibration = input.experienceLevel ? EXPERIENCE_CALIBRATION[input.experienceLevel] : "";
     const prompt = `PERGUNTA FEITA AO CANDIDATO:
 """${input.question}"""
 
@@ -225,7 +237,7 @@ RESPOSTA DO CANDIDATO (transcrição de áudio — pode conter pequenos erros de
 """${input.transcript || "(vazia)"}"""
 
 ${guide}
-
+${calibration ? `\n${calibration}\n` : ""}
 REGRAS ANTI-ALUCINAÇÃO (obrigatórias):
 - Use apenas o que o candidato disse. Nunca invente empresas, números, cargos ou resultados.
 - Em "improvedAnswer", reescreva a resposta em primeira pessoa no método STAR usando SOMENTE os fatos ditos; onde faltar informação, insira um marcador entre colchetes dizendo o que o candidato deve preencher (ex.: "[inclua o resultado medido: % de redução, prazo ou valor]"). Nunca preencha com números inventados.

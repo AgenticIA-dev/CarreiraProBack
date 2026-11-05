@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { DataSource } from "typeorm";
 import { UsageEventEntity } from "@/lib/db/entities";
 import type { UsageKind } from "@/types/database";
-import { textCostUsd, transcriptionCostUsd } from "./pricing";
+import { audioCostUsd, textCostUsd, transcriptionCostUsd } from "./pricing";
 
 /**
  * Medidor de uso de IA por requisição.
@@ -53,6 +53,8 @@ interface RecordInput {
   calls?: AiCall[];
   /** Transcrição: provedor, modelo e duração do áudio. */
   transcription?: { provider: string; model: string; seconds: number | null };
+  /** Síntese de voz (texto-para-fala): provedor, modelo e nº de caracteres do texto. */
+  audio?: { provider: string; model: string; characters: number };
   meta?: Record<string, unknown>;
 }
 
@@ -86,6 +88,14 @@ export async function recordUsage(db: DataSource, input: RecordInput): Promise<v
       audioSeconds = input.transcription.seconds;
       if (provider !== "mock" && audioSeconds) {
         cost += transcriptionCostUsd(model, audioSeconds);
+      }
+    }
+
+    if (input.audio) {
+      provider = input.audio.provider;
+      model = input.audio.model;
+      if (provider !== "mock" && input.audio.characters) {
+        cost += audioCostUsd(input.audio.characters);
       }
     }
 

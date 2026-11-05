@@ -3,10 +3,11 @@ import { UserEntity } from "@/lib/db/entities";
 import { profileUpdateSchema } from "@/lib/validation/schemas";
 
 /**
- * Atualiza o nome do usuário. Alteração de e-mail não é exposta por essa
- * rota (§46). Exige status "active" pelo mesmo motivo das demais rotas de
- * conta: esta API é alcançável diretamente, sem passar pelo middleware do
- * frontend. Só o campo `name` é gravado — status/role nunca vêm do cliente.
+ * Atualiza o nome e o nível de experiência do usuário. Alteração de e-mail
+ * não é exposta por essa rota (§46). Exige status "active" pelo mesmo
+ * motivo das demais rotas de conta: esta API é alcançável diretamente, sem
+ * passar pelo middleware do frontend. Só `name`/`experience_level` são
+ * gravados — status/role nunca vêm do cliente.
  */
 export async function PATCH(request: Request) {
   const auth = await requireActiveApiUser(request);
@@ -17,11 +18,14 @@ export async function PATCH(request: Request) {
   const json = await request.json().catch(() => null);
   const parsed = profileUpdateSchema.safeParse(json);
   if (!parsed.success) {
-    return Response.json({ error: "Nome inválido." }, { status: 400 });
+    return Response.json({ error: "Dados inválidos." }, { status: 400 });
   }
 
   try {
-    await auth.db.getRepository(UserEntity).update({ id: auth.userId }, { name: parsed.data.name });
+    await auth.db.getRepository(UserEntity).update(
+      { id: auth.userId },
+      { name: parsed.data.name, experience_level: parsed.data.experienceLevel ?? null }
+    );
     return Response.json({ ok: true });
   } catch {
     return Response.json({ error: "Não foi possível salvar agora." }, { status: 500 });

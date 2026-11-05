@@ -28,6 +28,15 @@ const TRANSCRIPTION_PRICES_PER_MIN: Record<string, number> = {
   "gpt-4o-mini-transcribe": 0.003,
 };
 
+/**
+ * Texto-para-voz: `gpt-4o-mini-tts` cobra por token (texto de entrada +
+ * áudio de saída), não por caractere — a API de síntese não devolve essa
+ * contagem de tokens na resposta (só os bytes do áudio), então aqui é uma
+ * estimativa por caractere do texto de entrada, não o valor exato da
+ * fatura. Ajustável por `AUDIO_PRICE_PER_1K_CHARS_USD` sem novo deploy.
+ */
+const AUDIO_PRICE_PER_1K_CHARS_USD = 0.015;
+
 function envNumber(name: string): number | null {
   const raw = process.env[name]?.trim();
   if (!raw) return null;
@@ -57,6 +66,12 @@ export function transcriptionCostUsd(model: string, seconds: number): number {
   const perMin =
     envNumber("TRANSCRIPTION_PRICE_PER_MIN_USD") ?? lookup(TRANSCRIPTION_PRICES_PER_MIN, model) ?? 0.006;
   return (seconds / 60) * perMin;
+}
+
+/** Estimativa de custo da síntese de voz, pelo tamanho do texto de entrada (ver nota acima). */
+export function audioCostUsd(characters: number): number {
+  const per1k = envNumber("AUDIO_PRICE_PER_1K_CHARS_USD") ?? AUDIO_PRICE_PER_1K_CHARS_USD;
+  return (characters / 1000) * per1k;
 }
 
 export function usdBrlRate(): number {

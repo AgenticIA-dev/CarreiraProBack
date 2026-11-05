@@ -11,6 +11,7 @@ import * as adminStats from "@/routes/admin/stats";
 import * as adminTesters from "@/routes/admin/testers";
 import * as adminUsage from "@/routes/admin/usage";
 import * as adminUsers from "@/routes/admin/users";
+import * as audioSpeak from "@/routes/audio/speak";
 import * as authForgotPassword from "@/routes/auth/forgot-password";
 import * as authLogin from "@/routes/auth/login";
 import * as authLogout from "@/routes/auth/logout";
@@ -23,6 +24,7 @@ import * as dashboardReadiness from "@/routes/dashboard/readiness";
 import * as interviewFeedback from "@/routes/interview/feedback";
 import * as interviewQuestion from "@/routes/interview/question";
 import * as interviewTranscribe from "@/routes/interview/transcribe";
+import * as questionsAudio from "@/routes/questions/audio";
 import * as questionsFavorite from "@/routes/questions/favorite";
 import * as questionsList from "@/routes/questions/list";
 import * as starGenerate from "@/routes/star/generate";
@@ -78,10 +80,14 @@ export function createApp() {
   app.get("/api/questions", handle(questionsList.GET));
   app.post("/api/questions/:id/favorite", (c) => questionsFavorite.POST(c.req.raw, c.req.param("id")));
   app.delete("/api/questions/:id/favorite", (c) => questionsFavorite.DELETE(c.req.raw, c.req.param("id")));
+  app.get("/api/questions/:id/audio/:kind", (c) =>
+    questionsAudio.GET(c.req.raw, c.req.param("id"), c.req.param("kind"))
+  );
   app.post("/api/star/generate", handle(starGenerate.POST));
   app.post("/api/interview/question", handle(interviewQuestion.POST));
   app.post("/api/interview/transcribe", handle(interviewTranscribe.POST));
   app.post("/api/interview/feedback", handle(interviewFeedback.POST));
+  app.post("/api/audio/speak", handle(audioSpeak.POST));
   app.get("/api/dashboard/readiness", handle(dashboardReadiness.GET));
 
   // Admin

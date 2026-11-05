@@ -79,6 +79,12 @@ export interface EvaluateResponseInput {
    * avaliação passa a ser a de um gestor/RH recebendo o pedido.
    */
   context?: "entrevista" | "aumento_promocao";
+  /**
+   * Nível de experiência declarado pelo usuário (perfil) — calibra a régua:
+   * um júnior não é avaliado pelo padrão sênior exigente de hoje. Ausente
+   * (usuário não informou) = comportamento de sempre, sem calibração.
+   */
+  experienceLevel?: "junior" | "pleno" | "senior";
 }
 
 export type CriterionKey = "estrutura" | "clareza" | "objetividade" | "resultado";

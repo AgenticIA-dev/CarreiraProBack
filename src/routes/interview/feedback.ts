@@ -70,6 +70,9 @@ export async function POST(request: Request) {
     category = q?.category ?? category;
   }
   const context = category === "aumento_promocao" ? "aumento_promocao" : "entrevista";
+  // Nível de experiência do perfil: calibra a régua da IA (item C da avaliação
+  // de UX, 04/11/2026). Ausente = sem calibração, comportamento de sempre.
+  const experienceLevel = auth.profile.experience_level ?? undefined;
 
   try {
     await sessions.update(where, { status: "scoring" });
@@ -77,12 +80,12 @@ export async function POST(request: Request) {
     const provider = getAIProvider();
     const { result: evaluation, calls } = await withUsageMeter(async (): Promise<EvaluateResponseOutput> => {
       try {
-        return await provider.evaluateInterviewResponse({ question, transcript, context });
+        return await provider.evaluateInterviewResponse({ question, transcript, context, experienceLevel });
       } catch (err) {
         // IA externa fora do ar / resposta malformada: não deixa o usuário sem
         // feedback — usa a avaliação heurística local (marcada como tal).
         console.error(`[feedback] Provedor "${provider.name}" falhou; usando heurística local:`, err);
-        return new MockAIProvider().evaluateInterviewResponse({ question, transcript, context });
+        return new MockAIProvider().evaluateInterviewResponse({ question, transcript, context, experienceLevel });
       }
     });
     await recordUsage(auth.db, {
@@ -90,7 +93,7 @@ export async function POST(request: Request) {
       kind: "simulation_feedback",
       request,
       calls,
-      meta: { sessionId, context, category, score: evaluation.score },
+      meta: { sessionId, context, category, score: evaluation.score, experienceLevel },
     });
 
     const feedback = formatFeedback(evaluation);

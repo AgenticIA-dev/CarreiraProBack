@@ -5,6 +5,7 @@ import type {
   DataRequestRow,
   InterviewSessionRow,
   PurchaseRow,
+  QuestionAudioRow,
   QuestionFavoriteRow,
   QuestionRow,
   StarResponseRow,
@@ -52,6 +53,12 @@ export const UserEntity = new EntitySchema<UserWithPasswordRow>({
     access_expires_at: { type: "timestamptz", nullable: true },
     is_courtesy: { type: "boolean", default: false },
     courtesy_granted_at: { type: "timestamptz", nullable: true },
+    experience_level: {
+      type: "enum",
+      enumName: "user_experience_level",
+      enum: ["junior", "pleno", "senior"],
+      nullable: true,
+    },
   },
 });
 
@@ -136,6 +143,22 @@ export const QuestionFavoriteEntity = new EntitySchema<QuestionFavoriteRow>({
     question_id: { type: "uuid", primary: true },
     created_at: createdAt,
   },
+});
+
+export const QuestionAudioEntity = new EntitySchema<QuestionAudioRow>({
+  name: "QuestionAudio",
+  tableName: "question_audio",
+  columns: {
+    id,
+    question_id: { type: "uuid" },
+    kind: { type: "text" },
+    mp3: { type: "bytea" },
+    voice: { type: "text" },
+    provider: { type: "text" },
+    model: { type: "text" },
+    created_at: createdAt,
+  },
+  uniques: [{ columns: ["question_id", "kind"] }],
 });
 
 export const StarResponseEntity = new EntitySchema<StarResponseRow>({
@@ -254,6 +277,7 @@ export const entities = [
   PurchaseEntity,
   QuestionEntity,
   QuestionFavoriteEntity,
+  QuestionAudioEntity,
   StarResponseEntity,
   InterviewSessionEntity,
   ConsentRecordEntity,

@@ -31,9 +31,16 @@ export const starFormSchema = z.object({
 
 export const profileUpdateSchema = z.object({
   name: z.string().trim().min(1, "Informe seu nome.").max(120),
+  /** Calibra a régua da IA no simulador e a dificuldade padrão das perguntas. Null = "não informar". */
+  experienceLevel: z.enum(["junior", "pleno", "senior"]).nullish(),
 });
 
 export const dataRequestSchema = z.object({
   type: z.enum(["access", "correction", "deletion"]),
   details: z.string().trim().max(2000).optional(),
+});
+
+/** Resumo falado de feedback: texto curto (algumas frases), não a sessão inteira. */
+export const audioSpeakSchema = z.object({
+  text: z.string().trim().min(1, "Informe o texto a ser falado.").max(2000, "Texto longo demais para ser falado."),
 });

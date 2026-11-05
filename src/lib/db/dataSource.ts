@@ -6,6 +6,8 @@ import { AumentoPromocao1793300000000 } from "./migrations/1793300000000-Aumento
 import { AccessExpiry1793400000000 } from "./migrations/1793400000000-AccessExpiry";
 import { UsageEvents1793500000000 } from "./migrations/1793500000000-UsageEvents";
 import { Courtesy1793600000000 } from "./migrations/1793600000000-Courtesy";
+import { QuestionAudio1793900000000 } from "./migrations/1793900000000-QuestionAudio";
+import { ExperienceLevel1794000000000 } from "./migrations/1794000000000-ExperienceLevel";
 
 /**
  * Conexão com o PostgreSQL via TypeORM.
@@ -38,6 +40,8 @@ export function buildDataSourceOptions(): DataSourceOptions {
       AccessExpiry1793400000000,
       UsageEvents1793500000000,
       Courtesy1793600000000,
+      QuestionAudio1793900000000,
+      ExperienceLevel1794000000000,
     ],
     migrationsTableName: "typeorm_migrations",
     synchronize: false,
