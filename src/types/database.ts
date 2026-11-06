@@ -65,6 +65,10 @@ export interface UserRow {
   courtesy_granted_at: Timestamp | null;
   /** Nulo = não informado (comportamento padrão, régua sênior exigente). */
   experience_level: UserExperienceLevel | null;
+  /** Parceiro que indicou este usuário (amostra grátis ou cupom no checkout). */
+  referred_by_partner_id: string | null;
+  /** Amostra grátis: acesso restrito (ver §restrições em interview/star/questions). */
+  is_trial: boolean;
 }
 
 export interface PurchaseRow {
@@ -78,6 +82,8 @@ export interface PurchaseRow {
   purchased_at: Timestamp | null;
   updated_at: Timestamp;
   created_at: Timestamp;
+  /** Parceiro atribuído à compra (cupom usado ou indicação prévia), para auditoria/comissão. */
+  partner_id: string | null;
 }
 
 export interface QuestionRow {
@@ -222,5 +228,52 @@ export interface AuthTokenRow {
   token_hash: string;
   expires_at: Timestamp;
   consumed_at: Timestamp | null;
+  created_at: Timestamp;
+}
+
+/**
+ * Parceiro do programa de influenciadores (ver migration Partners). O cupom
+ * é o código que o parceiro divulga; o desconto é aplicado no checkout
+ * (`create-preference.ts`) a quem usar esse código.
+ */
+export interface PartnerRow {
+  id: string;
+  name: string;
+  email: string | null;
+  coupon_code: string;
+  discount_percent: number;
+  active: boolean;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/**
+ * Faixa de comissão por meta de vendas do parceiro (ex.: 20% até a venda 20).
+ * `max_sale_number` nulo = sem limite superior (faixa "acima de X vendas").
+ */
+export interface PartnerCommissionTierRow {
+  id: string;
+  partner_id: string;
+  min_sale_number: number;
+  max_sale_number: number | null;
+  percent: number;
+  created_at: Timestamp;
+}
+
+export type PartnerCommissionStatus = "pending" | "paid";
+
+/** Uma linha por venda aprovada atribuída a um parceiro (calculada no webhook do Mercado Pago). */
+export interface PartnerCommissionRow {
+  id: string;
+  partner_id: string;
+  user_id: string;
+  purchase_id: string | null;
+  /** Posição da venda entre as vendas desse parceiro (1ª, 2ª, ...) — decide a faixa aplicada. */
+  sale_number: number;
+  percent_applied: number;
+  /** numeric no Postgres: o driver devolve como string. Calculado sobre o preço já com desconto do cupom. */
+  amount_brl: number | string;
+  status: PartnerCommissionStatus;
+  paid_at: Timestamp | null;
   created_at: Timestamp;
 }

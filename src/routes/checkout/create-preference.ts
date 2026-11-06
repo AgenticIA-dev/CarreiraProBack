@@ -3,6 +3,8 @@ import { createPreference } from "@/lib/mercadopago/client";
 import { getClientIp, rateLimit } from "@/lib/security/rateLimit";
 import { getPrimaryFrontendUrl } from "@/lib/http/cors";
 import { getCheckoutConfig } from "@/lib/checkout/config";
+import { getDb } from "@/lib/db/dataSource";
+import { PartnerEntity } from "@/lib/db/entities";
 
 const bodySchema = z.object({
   email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
@@ -10,6 +12,10 @@ const bodySchema = z.object({
   // exibida ao comprador (registrado nos metadados do pagamento).
   acceptedTerms: z.literal(true),
   termsVersion: z.string().min(1).max(40),
+  // Cupom de parceiro (programa de influenciadores). Opcional; se inválido ou
+  // de parceiro desativado, o checkout segue sem desconto (nunca bloqueia a
+  // compra por causa de um cupom ruim).
+  couponCode: z.string().trim().toUpperCase().max(40).optional(),
 });
 
 /**
@@ -75,8 +81,28 @@ export async function POST(request: Request) {
     );
   }
   const price = config.price;
-
   const email = parsed.data.email;
+
+  // Cupom de parceiro (programa de influenciadores): aplica o desconto
+  // cadastrado no Admin se o cupom existir e o parceiro estiver ativo. Nunca
+  // falha o checkout por causa de um cupom ruim — só não aplica desconto.
+  let partner: { id: string; discount_percent: number } | null = null;
+  if (parsed.data.couponCode) {
+    try {
+      const db = await getDb();
+      const found = await db
+        .getRepository(PartnerEntity)
+        .findOneBy({ coupon_code: parsed.data.couponCode, active: true });
+      if (found) {
+        partner = { id: found.id, discount_percent: found.discount_percent };
+      }
+    } catch (err) {
+      console.error("[checkout] Falha ao consultar cupom:", err);
+    }
+  }
+  const finalPrice = partner
+    ? Math.round(price * (1 - partner.discount_percent / 100) * 100) / 100
+    : price;
 
   try {
     const preference = await createPreference({
@@ -84,7 +110,7 @@ export async function POST(request: Request) {
         {
           title: config.title,
           quantity: 1,
-          unit_price: price,
+          unit_price: finalPrice,
           currency_id: "BRL",
         },
       ],
@@ -108,11 +134,14 @@ export async function POST(request: Request) {
         excluded_payment_types: [{ id: "ticket" }],
         installments: 3,
       },
-      // Registro do aceite dos termos (versão e momento) junto ao pagamento.
+      // Registro do aceite dos termos (versão e momento) e, se houver, do
+      // cupom/parceiro usado — lido de volta no webhook para calcular a
+      // comissão (ver webhooks/mercadopago.ts).
       metadata: {
         terms_version: config.termsVersion,
         terms_accepted_at: new Date().toISOString(),
         access_months: config.accessMonths ?? "vitalicio",
+        ...(partner ? { coupon_code: parsed.data.couponCode!, partner_id: partner.id } : {}),
       },
     });
 

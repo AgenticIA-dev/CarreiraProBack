@@ -1,7 +1,14 @@
 import type { DataSource, QueryDeepPartialEntity } from "typeorm";
 import { computeAccessExpiry } from "@/lib/checkout/config";
 import { getDb } from "@/lib/db/dataSource";
-import { PurchaseEntity, UserEntity, WebhookEventEntity } from "@/lib/db/entities";
+import {
+  PartnerCommissionEntity,
+  PartnerCommissionTierEntity,
+  PartnerEntity,
+  PurchaseEntity,
+  UserEntity,
+  WebhookEventEntity,
+} from "@/lib/db/entities";
 import { createAuthToken } from "@/lib/auth/authTokens";
 import { buildPasswordSetupUrl } from "@/lib/auth/session";
 import { inviteEmail, sendEmail } from "@/lib/email/mailer";
@@ -186,6 +193,101 @@ async function processPayment(db: DataSource, payment: MercadoPagoPayment, event
     },
     { conflictPaths: ["external_transaction_id", "event_type"] }
   );
+
+  // Comissão de parceiro: só na primeira vez que ESTE pagamento aparece como
+  // aprovado (mesma proteção que evita estender o acesso duas vezes). Nunca
+  // deixa uma falha aqui impedir a liberação de acesso já concedida acima.
+  if (purchaseStatus === "approved" && userId && !alreadyGranted) {
+    try {
+      const purchase = await db
+        .getRepository(PurchaseEntity)
+        .findOneBy({ external_transaction_id: String(payment.id), event_type: eventType });
+      await recordPartnerCommission(db, { userId, purchaseId: purchase?.id ?? null, payment });
+    } catch (err) {
+      console.error(`[webhook] Falha ao calcular comissão de parceiro (pagamento ${payment.id}):`, err);
+    }
+  }
+}
+
+/**
+ * Atribui a venda a um parceiro (pelo cupom/parceiro usado no checkout ou,
+ * na falta disso, pela indicação registrada no cadastro do usuário — amostra
+ * grátis) e grava a comissão calculada pela faixa de meta vigente.
+ *
+ * Nunca falha a aprovação do pagamento: chamado dentro de um try/catch no
+ * chamador. O pagamento fica pendente de pagamento no Admin
+ * (`admin/partner-commissions.ts`) — nunca é pago automaticamente.
+ */
+async function recordPartnerCommission(
+  db: DataSource,
+  params: { userId: string; purchaseId: string | null; payment: MercadoPagoPayment }
+): Promise<void> {
+  const { userId, purchaseId, payment } = params;
+  const metadata = payment.metadata ?? {};
+  const partnerIdFromMetadata = typeof metadata.partner_id === "string" ? metadata.partner_id : null;
+  const couponFromMetadata = typeof metadata.coupon_code === "string" ? metadata.coupon_code : null;
+
+  const partners = db.getRepository(PartnerEntity);
+  let partner = partnerIdFromMetadata ? await partners.findOneBy({ id: partnerIdFromMetadata }) : null;
+  if (!partner && couponFromMetadata) {
+    partner = await partners.findOneBy({ coupon_code: couponFromMetadata });
+  }
+  if (!partner) {
+    // Sem cupom no pagamento: tenta a indicação registrada no cadastro
+    // (quem veio da amostra grátis de um parceiro e comprou depois).
+    const user = await db.getRepository(UserEntity).findOneBy({ id: userId });
+    if (user?.referred_by_partner_id) {
+      partner = await partners.findOneBy({ id: user.referred_by_partner_id });
+    }
+  }
+  if (!partner) return;
+  const partnerId = partner.id;
+
+  if (purchaseId) {
+    await db.getRepository(PurchaseEntity).update({ id: purchaseId }, { partner_id: partnerId }).catch(() => null);
+  }
+
+  await db.transaction(async (manager) => {
+    // Lock na linha do parceiro para serializar o cálculo de `sale_number`
+    // entre vendas concorrentes do mesmo parceiro (duas notificações do
+    // Mercado Pago processadas em paralelo).
+    await manager
+      .createQueryBuilder()
+      .select("id")
+      .from(PartnerEntity, "p")
+      .where("id = :id", { id: partnerId })
+      .setLock("pessimistic_write")
+      .getRawOne();
+
+    const commissionRepo = manager.getRepository(PartnerCommissionEntity);
+    const saleNumber = (await commissionRepo.count({ where: { partner_id: partnerId } })) + 1;
+
+    const tiers = await manager
+      .getRepository(PartnerCommissionTierEntity)
+      .find({ where: { partner_id: partnerId }, order: { min_sale_number: "ASC" } });
+    const matchedTier = tiers.find(
+      (t) => saleNumber >= t.min_sale_number && (t.max_sale_number === null || saleNumber <= t.max_sale_number)
+    );
+    if (!matchedTier) {
+      console.warn(
+        `[webhook] Parceiro ${partnerId} sem faixa de comissão cadastrada para a venda #${saleNumber}; comissão registrada com 0%.`
+      );
+    }
+    const percent = matchedTier?.percent ?? 0;
+    // Sobre o valor realmente cobrado (já com o desconto do cupom aplicado
+    // na criação da preferência) — nunca sobre o preço de tabela.
+    const amount = Math.round(((payment.transaction_amount ?? 0) * percent) / 100 * 100) / 100;
+
+    await commissionRepo.insert({
+      partner_id: partnerId,
+      user_id: userId,
+      purchase_id: purchaseId,
+      sale_number: saleNumber,
+      percent_applied: percent,
+      amount_brl: amount,
+      status: "pending",
+    });
+  });
 }
 
 /**

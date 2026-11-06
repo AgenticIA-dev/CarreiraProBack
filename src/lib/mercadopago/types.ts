@@ -59,6 +59,8 @@ export interface MercadoPagoPayment {
     first_name?: string | null;
     last_name?: string | null;
   };
+  /** Metadados enviados na criação da preferência (termos aceitos, cupom/parceiro do checkout). */
+  metadata?: Record<string, unknown>;
 }
 
 /** Corpo enviado para POST /checkout/preferences. */

@@ -98,6 +98,19 @@ export function testerInviteEmail(to: string, link: string, days: number, name?:
   );
 }
 
+/** Amostra grátis via link de parceiro (restrita — ver §restrições no cadastro de trial). */
+export function trialSignupEmail(to: string, link: string, days: number, partnerName?: string | null): Email {
+  const hello = partnerName ? `Você foi indicado(a) por ${partnerName} para testar o VoceUP gratuitamente.` : "Você vai testar o VoceUP gratuitamente.";
+  return linkEmail(
+    to,
+    "VoceUP — sua amostra grátis está liberada",
+    `${hello} Você tem ${days} ${days === 1 ? "dia" : "dias"} de acesso de amostra (1 simulação de entrevista e o banco de perguntas com uma pergunta liberada por competência). Crie sua senha para entrar.`,
+    "Criar minha senha",
+    link,
+    `A amostra grátis termina ${days} ${days === 1 ? "dia" : "dias"} após o cadastro. O link vale por 7 dias e só pode ser usado uma vez; se expirar, use "Esqueci minha senha" na tela de login.`
+  );
+}
+
 export function inviteEmail(to: string, link: string): Email {
   return linkEmail(
     to,

@@ -21,6 +21,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "Não autenticado." }, { status: 401 });
   }
 
+  // Amostra grátis: pode ver a tela/explicação do STAR, mas gerar a resposta
+  // é recurso pago.
+  if (auth.profile.is_trial) {
+    return Response.json(
+      {
+        error: "Gerar respostas pelo método STAR é um recurso exclusivo do plano pago. Assine o VoceUP para usar.",
+        trialLimitReached: true,
+      },
+      { status: 403 }
+    );
+  }
+
   // Limite diário por usuário: protege o custo de IA/transcrição contra abuso.
   if (!rateLimit(`ai:star:${auth.userId}`, 30, 24 * 60 * 60 * 1000).allowed) {
     return Response.json(

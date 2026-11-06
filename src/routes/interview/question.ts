@@ -56,6 +56,23 @@ export async function POST(request: Request) {
     return Response.json({ error: "Não autenticado." }, { status: 401 });
   }
 
+  // Amostra grátis: só 1 simulação. A mensagem de limite aparece aqui (ao
+  // tentar iniciar a 2ª), não no meio da 1ª.
+  if (auth.profile.is_trial) {
+    const alreadyUsed = await auth.db
+      .getRepository(InterviewSessionEntity)
+      .existsBy({ user_id: auth.userId, status: "completed" });
+    if (alreadyUsed) {
+      return Response.json(
+        {
+          error: "Você já usou sua simulação grátis. Assine o VoceUP para continuar praticando.",
+          trialLimitReached: true,
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   // Limite diário por usuário: protege o custo de IA/transcrição contra abuso.
   if (!rateLimit(`sim:question:${auth.userId}`, 150, 24 * 60 * 60 * 1000).allowed) {
     return Response.json(

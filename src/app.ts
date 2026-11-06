@@ -6,6 +6,8 @@ import * as accountDataRequests from "@/routes/account/data-requests";
 import * as accountMe from "@/routes/account/me";
 import * as accountPassword from "@/routes/account/password";
 import * as accountProfile from "@/routes/account/profile";
+import * as adminPartnerCommissions from "@/routes/admin/partner-commissions";
+import * as adminPartners from "@/routes/admin/partners";
 import * as adminQuestions from "@/routes/admin/questions";
 import * as adminStats from "@/routes/admin/stats";
 import * as adminTesters from "@/routes/admin/testers";
@@ -28,6 +30,8 @@ import * as questionsAudio from "@/routes/questions/audio";
 import * as questionsFavorite from "@/routes/questions/favorite";
 import * as questionsList from "@/routes/questions/list";
 import * as starGenerate from "@/routes/star/generate";
+import * as trialInfo from "@/routes/trial/info";
+import * as trialSignup from "@/routes/trial/signup";
 import * as webhooksMercadoPago from "@/routes/webhooks/mercadopago";
 
 /**
@@ -90,6 +94,10 @@ export function createApp() {
   app.post("/api/audio/speak", handle(audioSpeak.POST));
   app.get("/api/dashboard/readiness", handle(dashboardReadiness.GET));
 
+  // Amostra grátis (programa de parcerias)
+  app.get("/api/trial/:code", (c) => trialInfo.GET(c.req.raw, c.req.param("code")));
+  app.post("/api/trial/signup", handle(trialSignup.POST));
+
   // Admin
   app.get("/api/admin/stats", handle(adminStats.GET));
   app.get("/api/admin/users", handle(adminUsers.GET));
@@ -97,9 +105,17 @@ export function createApp() {
   app.get("/api/admin/testers", handle(adminTesters.GET));
   app.post("/api/admin/testers", handle(adminTesters.POST));
   app.get("/api/admin/questions", handle(adminQuestions.GET));
+  app.get("/api/admin/partners", handle(adminPartners.GET));
+  app.post("/api/admin/partners", handle(adminPartners.POST));
+  app.patch("/api/admin/partners/:id", (c) => adminPartners.PATCH(c.req.raw, c.req.param("id")));
+  app.delete("/api/admin/partners/:id", (c) => adminPartners.DELETE(c.req.raw, c.req.param("id")));
+  app.get("/api/admin/partner-commissions", handle(adminPartnerCommissions.GET));
+  app.post("/api/admin/partner-commissions/:id/pay", (c) =>
+    adminPartnerCommissions.POST(c.req.raw, c.req.param("id"))
+  );
 
   // Pagamento
-  app.get("/api/checkout/info", () => checkoutInfo.GET());
+  app.get("/api/checkout/info", handle(checkoutInfo.GET));
   app.post("/api/checkout/create-preference", handle(checkoutCreatePreference.POST));
   app.post("/api/webhooks/mercadopago", handle(webhooksMercadoPago.POST));
 

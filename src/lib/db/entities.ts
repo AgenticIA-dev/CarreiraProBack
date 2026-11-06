@@ -4,6 +4,9 @@ import type {
   ConsentRecordRow,
   DataRequestRow,
   InterviewSessionRow,
+  PartnerCommissionRow,
+  PartnerCommissionTierRow,
+  PartnerRow,
   PurchaseRow,
   QuestionAudioRow,
   QuestionFavoriteRow,
@@ -59,6 +62,8 @@ export const UserEntity = new EntitySchema<UserWithPasswordRow>({
       enum: ["junior", "pleno", "senior"],
       nullable: true,
     },
+    referred_by_partner_id: { type: "uuid", nullable: true },
+    is_trial: { type: "boolean", default: false },
   },
 });
 
@@ -104,6 +109,7 @@ export const PurchaseEntity = new EntitySchema<PurchaseRow>({
     purchased_at: { type: "timestamptz", nullable: true },
     updated_at: updatedAt,
     created_at: createdAt,
+    partner_id: { type: "uuid", nullable: true },
   },
   uniques: [{ columns: ["external_transaction_id", "event_type"] }],
 });
@@ -271,6 +277,51 @@ export const UsageEventEntity = new EntitySchema<UsageEventRow>({
   },
 });
 
+export const PartnerEntity = new EntitySchema<PartnerRow>({
+  name: "Partner",
+  tableName: "partners",
+  columns: {
+    id,
+    name: { type: "text" },
+    email: { type: "text", nullable: true },
+    coupon_code: { type: "text", unique: true },
+    discount_percent: { type: "integer" },
+    active: { type: "boolean", default: true },
+    created_at: createdAt,
+    updated_at: updatedAt,
+  },
+});
+
+export const PartnerCommissionTierEntity = new EntitySchema<PartnerCommissionTierRow>({
+  name: "PartnerCommissionTier",
+  tableName: "partner_commission_tiers",
+  columns: {
+    id,
+    partner_id: { type: "uuid" },
+    min_sale_number: { type: "integer" },
+    max_sale_number: { type: "integer", nullable: true },
+    percent: { type: "integer" },
+    created_at: createdAt,
+  },
+});
+
+export const PartnerCommissionEntity = new EntitySchema<PartnerCommissionRow>({
+  name: "PartnerCommission",
+  tableName: "partner_commissions",
+  columns: {
+    id,
+    partner_id: { type: "uuid" },
+    user_id: { type: "uuid" },
+    purchase_id: { type: "uuid", nullable: true },
+    sale_number: { type: "integer" },
+    percent_applied: { type: "integer" },
+    amount_brl: { type: "numeric", precision: 10, scale: 2 },
+    status: { type: "text", default: "pending" },
+    paid_at: { type: "timestamptz", nullable: true },
+    created_at: createdAt,
+  },
+});
+
 export const entities = [
   UserEntity,
   AuthTokenEntity,
@@ -284,4 +335,7 @@ export const entities = [
   DataRequestEntity,
   WebhookEventEntity,
   UsageEventEntity,
+  PartnerEntity,
+  PartnerCommissionTierEntity,
+  PartnerCommissionEntity,
 ];

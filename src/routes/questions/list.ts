@@ -35,14 +35,29 @@ export async function GET(request: Request) {
       console.warn("[questions] Nenhuma pergunta publicada no banco — rode `npm run seed` no backend.");
     }
 
+    // Amostra grátis: só a 1ª pergunta de cada competência fica liberada; as
+    // demais aparecem na lista (para mostrar o tamanho do banco), mas com
+    // `locked: true` — o front-end bloqueia o acesso ao conteúdo dela.
+    const questionsForResponse = auth.profile.is_trial ? markLockedByCategory(questions) : questions;
+
     return Response.json({
-      questions,
+      questions: questionsForResponse,
       favoriteIds: favorites.map((f) => f.question_id),
     });
   } catch (err) {
     console.error("[questions] Falha ao listar perguntas:", err);
     return fallbackResponse();
   }
+}
+
+/** Marca como bloqueada toda pergunta além da 1ª de cada competência (ordem = `created_at ASC`). */
+function markLockedByCategory<T extends { category: string }>(questions: T[]): (T & { locked: boolean })[] {
+  const seenCategories = new Set<string>();
+  return questions.map((q) => {
+    const isFirstOfCategory = !seenCategories.has(q.category);
+    if (isFirstOfCategory) seenCategories.add(q.category);
+    return { ...q, locked: !isFirstOfCategory };
+  });
 }
 
 /** Conteúdo semente em memória (favoritos desativados: ids não existem no banco). */
