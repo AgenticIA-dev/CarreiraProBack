@@ -6,9 +6,11 @@ import * as accountDataRequests from "@/routes/account/data-requests";
 import * as accountMe from "@/routes/account/me";
 import * as accountPassword from "@/routes/account/password";
 import * as accountProfile from "@/routes/account/profile";
+import * as adminCampaigns from "@/routes/admin/campaigns";
 import * as adminPartnerCommissions from "@/routes/admin/partner-commissions";
 import * as adminPartners from "@/routes/admin/partners";
 import * as adminQuestions from "@/routes/admin/questions";
+import * as adminSettings from "@/routes/admin/settings";
 import * as adminStats from "@/routes/admin/stats";
 import * as adminTesters from "@/routes/admin/testers";
 import * as adminUsage from "@/routes/admin/usage";
@@ -113,6 +115,12 @@ export function createApp() {
   app.post("/api/admin/partner-commissions/:id/pay", (c) =>
     adminPartnerCommissions.POST(c.req.raw, c.req.param("id"))
   );
+  app.get("/api/admin/settings", handle(adminSettings.GET));
+  app.put("/api/admin/settings", handle(adminSettings.PUT));
+  app.get("/api/admin/campaigns", handle(adminCampaigns.GET));
+  app.post("/api/admin/campaigns", handle(adminCampaigns.POST));
+  app.patch("/api/admin/campaigns/:id", (c) => adminCampaigns.PATCH(c.req.raw, c.req.param("id")));
+  app.delete("/api/admin/campaigns/:id", (c) => adminCampaigns.DELETE(c.req.raw, c.req.param("id")));
 
   // Pagamento
   app.get("/api/checkout/info", handle(checkoutInfo.GET));

@@ -1,6 +1,8 @@
 import { EntitySchema } from "typeorm";
 import type {
   AuthTokenRow,
+  CampaignRow,
+  CheckoutSettingsRow,
   ConsentRecordRow,
   DataRequestRow,
   InterviewSessionRow,
@@ -110,6 +112,7 @@ export const PurchaseEntity = new EntitySchema<PurchaseRow>({
     updated_at: updatedAt,
     created_at: createdAt,
     partner_id: { type: "uuid", nullable: true },
+    campaign_id: { type: "uuid", nullable: true },
   },
   uniques: [{ columns: ["external_transaction_id", "event_type"] }],
 });
@@ -322,6 +325,34 @@ export const PartnerCommissionEntity = new EntitySchema<PartnerCommissionRow>({
   },
 });
 
+export const CheckoutSettingsEntity = new EntitySchema<CheckoutSettingsRow>({
+  name: "CheckoutSettings",
+  tableName: "checkout_settings",
+  columns: {
+    id,
+    price_brl: { type: "numeric", precision: 10, scale: 2, nullable: true },
+    access_months: { type: "integer", nullable: true },
+    access_lifetime: { type: "boolean", default: false },
+    title: { type: "text", nullable: true },
+    updated_at: updatedAt,
+  },
+});
+
+export const CampaignEntity = new EntitySchema<CampaignRow>({
+  name: "Campaign",
+  tableName: "campaigns",
+  columns: {
+    id,
+    code: { type: "text", nullable: true },
+    discount_percent: { type: "integer" },
+    active: { type: "boolean", default: true },
+    starts_at: { type: "timestamptz", nullable: true },
+    ends_at: { type: "timestamptz", nullable: true },
+    created_at: createdAt,
+    updated_at: updatedAt,
+  },
+});
+
 export const entities = [
   UserEntity,
   AuthTokenEntity,
@@ -338,4 +369,6 @@ export const entities = [
   PartnerEntity,
   PartnerCommissionTierEntity,
   PartnerCommissionEntity,
+  CheckoutSettingsEntity,
+  CampaignEntity,
 ];

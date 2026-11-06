@@ -3,8 +3,8 @@ import { createPreference } from "@/lib/mercadopago/client";
 import { getClientIp, rateLimit } from "@/lib/security/rateLimit";
 import { getPrimaryFrontendUrl } from "@/lib/http/cors";
 import { getCheckoutConfig } from "@/lib/checkout/config";
+import { resolveBestDiscount, applyDiscount } from "@/lib/checkout/discount";
 import { getDb } from "@/lib/db/dataSource";
-import { PartnerEntity } from "@/lib/db/entities";
 
 const bodySchema = z.object({
   email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const config = getCheckoutConfig();
+  const db = await getDb();
+  const config = await getCheckoutConfig(db);
   if (parsed.data.termsVersion !== config.termsVersion) {
     return Response.json(
       { error: "Os termos foram atualizados. Recarregue a página e revise antes de continuar." },
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         error:
-          "Checkout não configurado. Defina CHECKOUT_PRODUCT_PRICE_BRL, CHECKOUT_ACCESS_MONTHS, FRONTEND_ORIGIN e API_PUBLIC_URL no ambiente do servidor.",
+          "Checkout não configurado. Defina o preço e a duração do acesso em Admin › Configurações (ou CHECKOUT_PRODUCT_PRICE_BRL/CHECKOUT_ACCESS_MONTHS, FRONTEND_ORIGIN e API_PUBLIC_URL no ambiente do servidor).",
       },
       { status: 500 }
     );
@@ -83,26 +84,12 @@ export async function POST(request: Request) {
   const price = config.price;
   const email = parsed.data.email;
 
-  // Cupom de parceiro (programa de influenciadores): aplica o desconto
-  // cadastrado no Admin se o cupom existir e o parceiro estiver ativo. Nunca
-  // falha o checkout por causa de um cupom ruim — só não aplica desconto.
-  let partner: { id: string; discount_percent: number } | null = null;
-  if (parsed.data.couponCode) {
-    try {
-      const db = await getDb();
-      const found = await db
-        .getRepository(PartnerEntity)
-        .findOneBy({ coupon_code: parsed.data.couponCode, active: true });
-      if (found) {
-        partner = { id: found.id, discount_percent: found.discount_percent };
-      }
-    } catch (err) {
-      console.error("[checkout] Falha ao consultar cupom:", err);
-    }
-  }
-  const finalPrice = partner
-    ? Math.round(price * (1 - partner.discount_percent / 100) * 100) / 100
-    : price;
+  // Cupom (parceiro OU campanha com código) comparado com a melhor campanha
+  // automática ativa: vale sempre o maior desconto, nunca os dois somados.
+  // Nunca falha o checkout por causa de um cupom/campanha ruim — só não
+  // aplica desconto.
+  const discount = await resolveBestDiscount(db, parsed.data.couponCode ?? null);
+  const finalPrice = applyDiscount(price, discount.percent);
 
   try {
     const preference = await createPreference({
@@ -141,7 +128,9 @@ export async function POST(request: Request) {
         terms_version: config.termsVersion,
         terms_accepted_at: new Date().toISOString(),
         access_months: config.accessMonths ?? "vitalicio",
-        ...(partner ? { coupon_code: parsed.data.couponCode!, partner_id: partner.id } : {}),
+        ...(discount.couponCode ? { coupon_code: discount.couponCode } : {}),
+        ...(discount.partnerId ? { partner_id: discount.partnerId } : {}),
+        ...(discount.campaignId ? { campaign_id: discount.campaignId } : {}),
       },
     });
 

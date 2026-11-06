@@ -9,6 +9,7 @@ import { Courtesy1793600000000 } from "./migrations/1793600000000-Courtesy";
 import { QuestionAudio1793900000000 } from "./migrations/1793900000000-QuestionAudio";
 import { ExperienceLevel1794000000000 } from "./migrations/1794000000000-ExperienceLevel";
 import { Partners1794100000000 } from "./migrations/1794100000000-Partners";
+import { CheckoutSettingsAndCampaigns1794300000000 } from "./migrations/1794300000000-CheckoutSettingsAndCampaigns";
 
 /**
  * Conexão com o PostgreSQL via TypeORM.
@@ -44,6 +45,7 @@ export function buildDataSourceOptions(): DataSourceOptions {
       QuestionAudio1793900000000,
       ExperienceLevel1794000000000,
       Partners1794100000000,
+      CheckoutSettingsAndCampaigns1794300000000,
     ],
     migrationsTableName: "typeorm_migrations",
     synchronize: false,

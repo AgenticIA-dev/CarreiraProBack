@@ -181,6 +181,12 @@ async function processPayment(db: DataSource, payment: MercadoPagoPayment, event
   const userId =
     email && userStatus ? await syncUserAccess(db, email, userStatus, !alreadyGranted) : null;
 
+  // Campanha usada no checkout (automática ou cupom) — só para auditoria/
+  // relatório, registrada sempre (mesmo em eventos repetidos do mesmo
+  // pagamento), ao contrário da comissão de parceiro, que é uma única vez.
+  const campaignIdFromMetadata =
+    typeof payment.metadata?.campaign_id === "string" ? payment.metadata.campaign_id : null;
+
   await db.getRepository(PurchaseEntity).upsert(
     {
       user_id: userId,
@@ -190,6 +196,7 @@ async function processPayment(db: DataSource, payment: MercadoPagoPayment, event
       event_type: eventType,
       raw_payload: asJson(payment),
       purchased_at: payment.date_approved ?? null,
+      campaign_id: campaignIdFromMetadata,
     },
     { conflictPaths: ["external_transaction_id", "event_type"] }
   );
@@ -313,7 +320,7 @@ async function syncUserAccess(
             status,
             // Testador que compra vira cliente: o prazo comprado conta a partir
             // de hoje (não soma aos dias de cortesia) e a marca de cortesia sai.
-            access_expires_at: computeAccessExpiry(existing.is_courtesy ? null : existing.access_expires_at),
+            access_expires_at: await computeAccessExpiry(db, existing.is_courtesy ? null : existing.access_expires_at),
             is_courtesy: false,
           }
         : { status }
@@ -331,7 +338,7 @@ async function syncUserAccess(
   const created = await users
     .createQueryBuilder()
     .insert()
-    .values({ email, status, role: "user", access_expires_at: computeAccessExpiry(null) })
+    .values({ email, status, role: "user", access_expires_at: await computeAccessExpiry(db, null) })
     .orIgnore()
     .returning(["id"])
     .execute();

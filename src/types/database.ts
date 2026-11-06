@@ -84,6 +84,8 @@ export interface PurchaseRow {
   created_at: Timestamp;
   /** Parceiro atribuído à compra (cupom usado ou indicação prévia), para auditoria/comissão. */
   partner_id: string | null;
+  /** Campanha usada (automática ou cupom), para auditoria/relatório — nunca gera comissão. */
+  campaign_id: string | null;
 }
 
 export interface QuestionRow {
@@ -276,4 +278,38 @@ export interface PartnerCommissionRow {
   status: PartnerCommissionStatus;
   paid_at: Timestamp | null;
   created_at: Timestamp;
+}
+
+/**
+ * Preço, duração do acesso e título editáveis pelo Admin (ver migration
+ * CheckoutSettingsAndCampaigns). Linha única (a mais recente por
+ * `updated_at` vale); campo nulo = ainda não configurado pelo Admin, caso em
+ * que `src/lib/checkout/config.ts` cai para a variável de ambiente.
+ */
+export interface CheckoutSettingsRow {
+  id: string;
+  price_brl: number | string | null;
+  access_months: number | null;
+  access_lifetime: boolean;
+  title: string | null;
+  updated_at: Timestamp;
+}
+
+/**
+ * Campanha promocional (ver migration CheckoutSettingsAndCampaigns e
+ * `src/lib/checkout/discount.ts`). `code` nulo = desconto automático
+ * (aplicado direto no preço, sem precisar digitar nada); `code` preenchido =
+ * cupom que o visitante digita no checkout, igual ao cupom de parceiro.
+ * Nunca gera comissão (ao contrário de Partner) e nunca acumula com outro
+ * desconto — vale sempre o maior percentual.
+ */
+export interface CampaignRow {
+  id: string;
+  code: string | null;
+  discount_percent: number;
+  active: boolean;
+  starts_at: Timestamp | null;
+  ends_at: Timestamp | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
